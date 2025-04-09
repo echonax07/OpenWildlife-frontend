@@ -69,6 +69,11 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'ERROR',
         },
+        'data_import': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 

@@ -68,18 +68,57 @@ def check_request_files_size(files):
 
     check_tasks_max_file_size(total)
 
+from io import BytesIO
+from PIL import Image
+import os
+from django.core.files.base import ContentFile
 
 def create_file_upload(user, project, file):
-    instance = FileUpload(user=user, project=project, file=file)
+    # Create original file instance
+    original_instance = FileUpload(user=user, project=project, file=file)
+    
+    # SVG cleaning logic
     if settings.SVG_SECURITY_CLEANUP:
-        content_type, encoding = mimetypes.guess_type(str(instance.file.name))
-        if content_type in ['image/svg+xml']:
-            clean_xml = allowlist_svg(instance.file.read().decode())
-            instance.file.seek(0)
-            instance.file.write(clean_xml.encode())
-            instance.file.truncate()
-    instance.save()
-    return instance
+        content_type, encoding = mimetypes.guess_type(str(original_instance.file.name))
+        if content_type == 'image/svg+xml':
+            clean_xml = allowlist_svg(original_instance.file.read().decode())
+            original_instance.file.seek(0)
+            original_instance.file.write(clean_xml.encode())
+            original_instance.file.truncate()
+
+    original_instance.save()
+
+    # Create thumbnail instance for raster images
+    try:
+        content_type, encoding = mimetypes.guess_type(str(original_instance.file.name))
+        if content_type and content_type.startswith('image/') and content_type != 'image/svg+xml':
+            with original_instance.file.open() as f:
+                img = Image.open(f)
+                img.thumbnail((300, 300))  # Thumbnail size
+
+                # Create thumbnail filename
+                original_name = file.name
+                base, ext = os.path.splitext(original_name)
+                thumbnail_name = f"{base}_thumb{ext}"
+
+                # Save thumbnail to new FileUpload instance
+                buffer = BytesIO()
+                img.save(buffer, format=img.format)
+                buffer.seek(0)
+                
+                # Create thumbnail FileUpload instance
+                thumbnail_file = ContentFile(buffer.read(), name=thumbnail_name)
+                thumbnail_instance = FileUpload(
+                    user=user,
+                    project=project,
+                    file=thumbnail_file
+                )
+                thumbnail_instance.save()
+
+    except Exception as e:
+        logger.error(f"Thumbnail generation failed for {original_instance.file.name}: {str(e)}")
+
+    return original_instance
 
 
 def allowlist_svg(dirty_xml):

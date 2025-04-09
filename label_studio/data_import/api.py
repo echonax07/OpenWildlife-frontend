@@ -327,6 +327,7 @@ class ImportAPI(generics.CreateAPIView):
 
     @timeit
     def async_import(self, request, project, preannotated_from_fields, commit_to_project, return_task_ids):
+        logger.debug(f'Async import for project {project}')
 
         project_import = ProjectImport.objects.create(
             project=project,

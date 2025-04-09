@@ -18,12 +18,12 @@ from rest_framework.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
-
 def upload_name_generator(instance, filename):
     project = str(instance.project_id)
     project_dir = os.path.join(settings.MEDIA_ROOT, settings.UPLOAD_DIR, project)
     os.makedirs(project_dir, exist_ok=True)
-    path = settings.UPLOAD_DIR + '/' + project + '/' + str(uuid.uuid4())[0:8] + '-' + filename
+    path = settings.UPLOAD_DIR + '/' + project + '/' + '-' + filename
+    logger.debug('Upload file to ' + path)
     return path
 
 
@@ -113,9 +113,19 @@ class FileUpload(models.Model):
     def read_task_from_uploaded_file(self):
         logger.debug('Read 1 task from uploaded file {}'.format(self.file.name))
         if settings.CLOUD_FILE_STORAGE_ENABLED:
-            tasks = [{'data': {settings.DATA_UNDEFINED_NAME: self.file.name}}]
+            original_url = self.file.name
         else:
-            tasks = [{'data': {settings.DATA_UNDEFINED_NAME: self.url}}]
+            original_url = self.url
+        
+        # Generate thumbnail URL by appending '_thumb' before the extension
+        base, ext = os.path.splitext(original_url)
+        thumbnail_url = f"{base}_thumb{ext}"
+        
+        tasks = [{'data': {
+            settings.DATA_UNDEFINED_NAME: original_url,
+            'image_thumbnail': thumbnail_url
+        }}]
+        logger.debug('Read tasks: {}'.format(tasks))
         return tasks
 
     @property
@@ -146,6 +156,7 @@ class FileUpload(models.Model):
             elif file_format in ('.html', '.htm', '.xml'):
                 tasks = self.read_task_from_hypertext_body()
             else:
+                logger.debug('Defaulting to read_task_from_uploaded_file')
                 tasks = self.read_task_from_uploaded_file()
 
         except Exception as exc:
@@ -156,6 +167,7 @@ class FileUpload(models.Model):
     def load_tasks_from_uploaded_files(
         cls, project, file_upload_ids=None, formats=None, files_as_tasks_list=True, trim_size=None
     ):
+        logger.debug('Loading tasks from uploaded files')
         tasks = []
         fileformats = []
         common_data_fields = set()
