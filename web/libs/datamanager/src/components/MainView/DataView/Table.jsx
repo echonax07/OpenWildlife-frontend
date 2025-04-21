@@ -59,12 +59,18 @@ export const DataView = injector(
     isLocked,
     ...props
   }) => {
-    // Override thumbnail types from unknown to images for proper formatting in grid table views
-    const thumbnailColumn = columns.find(column => column.title === "thumbnail");
-    if (thumbnailColumn) {
-      thumbnailColumn.type = "Image";
-      thumbnailColumn.currentType = "Image";
+    // Turn off full-resolution image display
+    // TODO: Allow this to be undone through the columns checkbox
+    if (!hiddenColumns.includes("tasks:data.image")) {
+      hiddenColumns.push("tasks:data.image");
     }
+
+    // Override thumbnail types from unknown to images for proper formatting in grid table views
+    columns.forEach(column => {
+      if (column.id === "tasks:data.thumbnail") {
+        Object.assign(column, { type: "Image", currentType: "Image" });
+      }
+    });
 
     const [datasetStatusID, setDatasetStatusID] = useState(store.SDK.dataset?.status?.id);
     const focusedItem = useMemo(() => {
