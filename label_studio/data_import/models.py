@@ -2,7 +2,6 @@
 """
 import logging
 import os
-import uuid
 from collections import Counter
 
 import pandas as pd
@@ -22,7 +21,7 @@ def upload_name_generator(instance, filename):
     project = str(instance.project_id)
     project_dir = os.path.join(settings.MEDIA_ROOT, settings.UPLOAD_DIR, project)
     os.makedirs(project_dir, exist_ok=True)
-    path = settings.UPLOAD_DIR + '/' + project + '/' + '-' + filename
+    path = settings.UPLOAD_DIR + '/' + project + '/' + filename
     logger.debug('Upload file to ' + path)
     return path
 
@@ -123,7 +122,7 @@ class FileUpload(models.Model):
         
         tasks = [{'data': {
             settings.DATA_UNDEFINED_NAME: original_url,
-            'image_thumbnail': thumbnail_url
+            'thumbnail': thumbnail_url
         }}]
         logger.debug('Read tasks: {}'.format(tasks))
         return tasks

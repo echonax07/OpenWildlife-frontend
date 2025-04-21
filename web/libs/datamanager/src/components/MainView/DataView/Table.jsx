@@ -59,6 +59,13 @@ export const DataView = injector(
     isLocked,
     ...props
   }) => {
+    // Override thumbnail types from unknown to images for proper formatting in grid table views
+    const thumbnailColumn = columns.find(column => column.title === "thumbnail");
+    if (thumbnailColumn) {
+      thumbnailColumn.type = "Image";
+      thumbnailColumn.currentType = "Image";
+    }
+
     const [datasetStatusID, setDatasetStatusID] = useState(store.SDK.dataset?.status?.id);
     const focusedItem = useMemo(() => {
       return props.focusedItem;

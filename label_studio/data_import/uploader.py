@@ -17,6 +17,11 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.exceptions import ValidationError
 
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
+import uuid
+
 from .models import FileUpload
 
 logger = logging.getLogger(__name__)
@@ -68,18 +73,17 @@ def check_request_files_size(files):
 
     check_tasks_max_file_size(total)
 
-from io import BytesIO
-from PIL import Image
-import os
-from django.core.files.base import ContentFile
-
 def create_file_upload(user, project, file):
+    # Need unique ID shared between thumbnail and original image, or Django will set both randomly
+    id = str(uuid.uuid4())[0:8]
+  
     # Create original file instance
+    file.name = f"{id}-{file.name}"
     original_instance = FileUpload(user=user, project=project, file=file)
     
     # SVG cleaning logic
     if settings.SVG_SECURITY_CLEANUP:
-        content_type, encoding = mimetypes.guess_type(str(original_instance.file.name))
+        content_type, _ = mimetypes.guess_type(str(original_instance.file.name))
         if content_type == 'image/svg+xml':
             clean_xml = allowlist_svg(original_instance.file.read().decode())
             original_instance.file.seek(0)
@@ -90,23 +94,41 @@ def create_file_upload(user, project, file):
 
     # Create thumbnail instance for raster images
     try:
-        content_type, encoding = mimetypes.guess_type(str(original_instance.file.name))
+        content_type, _ = mimetypes.guess_type(str(original_instance.file.name))
         if content_type and content_type.startswith('image/') and content_type != 'image/svg+xml':
             with original_instance.file.open() as f:
                 img = Image.open(f)
-                img.thumbnail((300, 300))  # Thumbnail size
+                original_format = img.format
+                # Apply EXIF orientation if available
+                try:
+                    exif = img._getexif()
+                    if exif:
+                        orientation = exif.get(0x0112)
+                        if orientation == 3:
+                            img = img.rotate(180, expand=True)
+                        elif orientation == 6:
+                            img = img.rotate(270, expand=True)
+                        elif orientation == 8:
+                            img = img.rotate(90, expand=True)
+                except Exception as exif_error:
+                    logger.warning(f"Failed to apply EXIF orientation for {original_instance.file.name}: {str(exif_error)}")
+
+                # Thumbnail size
+                img.thumbnail((100, 100))  
 
                 # Create thumbnail filename
                 original_name = file.name
                 base, ext = os.path.splitext(original_name)
+                logger.debug(f"Original ext: {ext}")
                 thumbnail_name = f"{base}_thumb{ext}"
 
                 # Save thumbnail to new FileUpload instance
                 buffer = BytesIO()
-                img.save(buffer, format=img.format)
+                img.save(buffer, format=original_format)
                 buffer.seek(0)
                 
                 # Create thumbnail FileUpload instance
+                # Need a separate FileUpload so that permissioning can be checked in api.py
                 thumbnail_file = ContentFile(buffer.read(), name=thumbnail_name)
                 thumbnail_instance = FileUpload(
                     user=user,

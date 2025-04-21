@@ -32,7 +32,7 @@ const CellRenderer = observer(
       cellViews.String;
 
     // TODO: hacky workaround for thumbnails to be recognized as image, ideally change the actual columns context
-    if (altType == "Data.imageThumbnail") {
+    if (altType == "Data.thumbnail") {
       Renderer = cellViews["Image"];
     }
     const renderProps = { column: col, original: data, value };
