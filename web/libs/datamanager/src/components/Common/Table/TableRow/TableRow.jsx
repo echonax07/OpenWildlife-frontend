@@ -8,63 +8,102 @@ import "./TableRow.scss";
 import { TableContext, TableElem } from "../TableContext";
 import { getProperty, getStyle } from "../utils";
 
-const CellRenderer = observer(({ col: colInput, data, decoration, cellViews }) => {
-  const { Header: _, Cell, id, ...col } = colInput;
+const CellRenderer = observer(
+  ({ col: colInput, data, decoration, cellViews }) => {
+    const { Header: _, Cell, id, ...col } = colInput;
 
-  if (Cell instanceof Function) {
-    const { headerClassName: _, cellClassName, ...rest } = col;
+    if (Cell instanceof Function) {
+      const { headerClassName: _, cellClassName, ...rest } = col;
+
+      return (
+        <TableElem {...rest} name="cell" key={id} mix={cellClassName}>
+          <Cell data={data} />
+        </TableElem>
+      );
+    }
+
+    const valuePath = id.split(":")[1] ?? id;
+    const altType = normalizeCellAlias(valuePath);
+    const value = getProperty(data, valuePath);
+
+    let Renderer =
+      cellViews[altType] ??
+      cellViews[col.original.currentType] ??
+      cellViews.String;
+
+    // TODO: hacky workaround for thumbnails to be recognized as image, ideally change the actual columns context
+    if (altType == "Data.thumbnail") {
+      Renderer = cellViews["Image"];
+    }
+    const renderProps = { column: col, original: data, value };
+    const Decoration = decoration?.get?.(col);
+    const style = getStyle(cellViews, col, Decoration);
+    const cellIsLoading = isFF(FF_LOPS_E_3) && data.loading === colInput.alias;
 
     return (
-      <TableElem {...rest} name="cell" key={id} mix={cellClassName}>
-        <Cell data={data} />
+      <TableElem name="cell">
+        <div
+          style={{
+            ...(style ?? {}),
+            display: "flex",
+            height: "100%",
+            alignItems: cellIsLoading ? "" : "center"
+          }}
+        >
+          {cellIsLoading ? (
+            <SkeletonLoader />
+          ) : Renderer ? (
+            <Renderer {...renderProps} />
+          ) : (
+            value
+          )}
+        </div>
       </TableElem>
     );
   }
+);
 
-  const valuePath = id.split(":")[1] ?? id;
-  const altType = normalizeCellAlias(valuePath);
-  const value = getProperty(data, valuePath);
-
-  const Renderer = cellViews[altType] ?? cellViews[col.original.currentType] ?? cellViews.String;
-  const renderProps = { column: col, original: data, value };
-  const Decoration = decoration?.get?.(col);
-  const style = getStyle(cellViews, col, Decoration);
-  const cellIsLoading = isFF(FF_LOPS_E_3) && data.loading === colInput.alias;
-
-  return (
-    <TableElem name="cell">
-      <div
-        style={{
-          ...(style ?? {}),
-          display: "flex",
-          height: "100%",
-          alignItems: cellIsLoading ? "" : "center",
-        }}
-      >
-        {cellIsLoading ? <SkeletonLoader /> : Renderer ? <Renderer {...renderProps} /> : value}
-      </div>
-    </TableElem>
-  );
-});
-
-export const TableRow = observer(({ data, even, style, wrapperStyle, onClick, stopInteractions, decoration }) => {
-  const { columns, cellViews } = React.useContext(TableContext);
-
-  const mods = {
+export const TableRow = observer(
+  ({
+    data,
     even,
-    selected: data.isSelected,
-    highlighted: data.isHighlighted,
-    loading: data.isLoading,
-    disabled: stopInteractions,
-  };
+    style,
+    wrapperStyle,
+    onClick,
+    stopInteractions,
+    decoration
+  }) => {
+    const { columns, cellViews } = React.useContext(TableContext);
 
-  return (
-    <TableElem name="row-wrapper" mod={mods} style={wrapperStyle} onClick={(e) => onClick?.(data, e)}>
-      <Block name="table-row" style={style}>
-        {columns.map((col) => {
-          return <CellRenderer key={col.id} col={col} data={data} cellViews={cellViews} decoration={decoration} />;
-        })}
-      </Block>
-    </TableElem>
-  );
-});
+    const mods = {
+      even,
+      selected: data.isSelected,
+      highlighted: data.isHighlighted,
+      loading: data.isLoading,
+      disabled: stopInteractions
+    };
+
+    return (
+      <TableElem
+        name="row-wrapper"
+        mod={mods}
+        style={wrapperStyle}
+        onClick={e => onClick?.(data, e)}
+      >
+        <Block name="table-row" style={style}>
+          {columns.map(col => {
+            return (
+              <CellRenderer
+                key={col.id}
+                col={col}
+                data={data}
+                cellViews={cellViews}
+                decoration={decoration}
+              />
+            );
+          })}
+        </Block>
+      </TableElem>
+    );
+  }
+);
