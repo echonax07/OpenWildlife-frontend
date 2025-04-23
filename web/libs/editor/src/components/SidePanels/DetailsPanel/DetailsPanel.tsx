@@ -120,6 +120,8 @@ const InfoTab: FC<any> = inject("store")(
       <>
         <Block name="info">
           <Elem name="section-tab">
+            <Elem name="section-head">Annotation Statistics</Elem>
+            <AnnotationStatisticsPanel />
             <Elem name="section-head">Selection Details</Elem>
             <RegionsPanel regions={selection} />
           </Elem>
@@ -177,6 +179,43 @@ const GeneralPanel: FC<any> = inject("store")(
 );
 
 GeneralPanel.displayName = "GeneralPanel";
+
+const AnnotationStatisticsPanel: FC<any> = inject("store")(
+  observer(({ store }) => {
+    const getAllRegions = () => {
+      let annotations = store.annotationStore.retrieveAllAnnotations();
+      let regions: object[] = [];
+      annotations.forEach((a) => {
+        regions = regions.concat(a.retrieveAllRegions());
+      });
+
+      return regions;
+    }
+    return (
+      (() => {
+        const allRegions = getAllRegions();
+        const regionCounts = allRegions.reduce((acc: Record<string, number>, region: any) => {
+          acc[region.labelName] = (acc[region.labelName] || 0) + 1;
+          return acc;
+        }, {});
+        const totalCount = regionCounts["undefined"] ? (allRegions.length - regionCounts["undefined"]) : allRegions.length;
+
+        return (
+          <Elem name="section-content">
+            <div style={{ paddingLeft: "16px" }}>
+              {Object.entries(regionCounts).map(([name, count]) => (
+              <div key={name}>
+                <strong>{name}:</strong> {count}
+              </div>
+              ))}
+              <div><strong>Total Valid Regions:</strong> {totalCount}</div>
+            </div>
+          </Elem>
+        );
+      })()
+    )
+  })
+);
 
 const RegionsPanel: FC<{ regions: any }> = observer(({ regions }) => {
   return (
