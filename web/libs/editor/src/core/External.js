@@ -2,6 +2,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 /**
+ * Callback for retrieving predictions
+ */
+function onRetrievePredictions() {}
+
+/**
+ * Callback to train ML backend
+ */
+function onForceTrain() {}
+
+/**
  * Callback on submit annotation
  */
 function onSubmitAnnotation() {}
@@ -84,6 +94,8 @@ export default {
   onLabelStudioLoad,
   onSkipTask,
   onUnskipTask,
+  onRetrievePredictions,
+  onForceTrain,
   onSubmitAnnotation,
   onSubmitDraft,
   onTaskLoad,

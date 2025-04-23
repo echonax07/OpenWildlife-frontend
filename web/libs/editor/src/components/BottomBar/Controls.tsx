@@ -261,6 +261,44 @@ export const Controls = controlsInjector<{ annotation: MSTAnnotation }>(
         );
       }
 
+      {
+        const button = (
+          <ButtonTooltip key="predict" title={"Predict"}>
+            <Button
+              aria-label="predict"
+              name="predict"
+              disabled={false}
+              look={look}
+              onClick={async (event) => {
+                store.retrievePredictions();
+              }}
+            >
+              Predict
+            </Button>
+          </ButtonTooltip>
+        )
+        buttons.push(button);
+      }
+
+      {
+        const button = (
+          <ButtonTooltip key="train" title={"Train"}>
+            <Button
+              aria-label="train"
+              name="train"
+              disabled={false}
+              look={look}
+              onClick={async (event) => {
+                store.forceTrain();
+              }}
+            >
+              Train
+            </Button>
+          </ButtonTooltip>
+        )
+        buttons.push(button);
+      }
+
       if ((userGenerate && sentUserGenerate) || (!userGenerate && store.hasInterface("update"))) {
         const isUpdate = Boolean(isFF(FF_REVIEWER_FLOW) || sentUserGenerate || versions.result);
         // no changes were made over previously submitted version — no drafts, no pending changes

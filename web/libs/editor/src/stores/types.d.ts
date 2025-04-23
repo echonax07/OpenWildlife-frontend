@@ -167,6 +167,8 @@ type MSTStore = {
 
   hasInterface: (name: string) => boolean;
   handleCustomButton?: (name: string) => void;
+  retrievePredictions: (options?: any) => void;
+  forceTrain: (options?: any) => void;
   submitAnnotation: (options?: any) => void;
   updateAnnotation: (options?: any) => void;
   rejectAnnotation: (options?: any) => void;

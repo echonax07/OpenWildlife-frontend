@@ -14,6 +14,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
 from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
+from tasks.models import AnnotationDraft
+from tasks.serializers import AnnotationDraftSerializer
 
 from label_studio.core.utils.params import get_env
 
@@ -122,6 +124,10 @@ class MLApiResult:
         self.status_code = status_code
 
     @property
+    def get_status_code(self):
+        return self.status_code
+
+    @property
     def is_error(self):
         return self.type == 'error'
 
@@ -204,6 +210,45 @@ class MLApi(BaseHTTPAPI):
                 'params': {'login': project.task_data_login, 'password': project.task_data_password},
             }
             return self._request('train', request, verbose=False, timeout=TIMEOUT_PREDICT)
+
+    def force_train(self, project, task_ids):
+        # TODO: This currently only works for one task
+
+        # TODO Replace AnonymousUser with real user from request
+        user = AnonymousUser()
+        # Get only the tasks with the provided task_ids
+        tasks = project.tasks.annotate(num_annotations=Count('annotations')).filter(id__in=task_ids)
+        tasks_ser = ExportDataSerializer(tasks, many=True).data
+
+        # Filter drafts by task_ids
+        drafts = project.drafts.filter(task__id__in=task_ids)
+        drafts_ser = AnnotationDraftSerializer(drafts, many=True, default=[], read_only=True).data
+        
+        # Hack: if drafts are present, replace annotations with drafts
+        # TODO: this must be updated if we ever want force_train to support multiple tasks
+        if len(drafts_ser) > 0 and len(tasks_ser) > 0:
+            tasks_ser[0]["annotations"] = [drafts_ser[0]]
+        
+        if len(tasks_ser[0]["annotations"]) == 0:
+            # If no tasks and no drafts, return empty response
+            return MLApiResult(
+                url=self._get_url('force_train'),
+                request={},
+                response={'error': 'When attempting to train the model, we could not find any annotations for the given tasks. Please try again.'},
+                headers={},
+                type='error',
+                status_code=400,
+            )
+
+        logger.debug(f'{len(tasks_ser)} tasks with annotations are sent to ML backend for training.')
+        request = {
+            'tasks': tasks_ser,
+            'project': project.id,
+            'label_config': project.label_config,
+            'params': {'login': project.task_data_login, 'password': project.task_data_password},
+        }
+
+        return self._request('force_train', request, verbose=False, timeout=TIMEOUT_TRAIN)
 
     def _prep_prediction_req(self, tasks, project, context=None):
         request = {

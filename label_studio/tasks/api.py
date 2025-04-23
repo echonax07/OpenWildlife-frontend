@@ -46,6 +46,7 @@ from webhooks.utils import (
     api_webhook,
     api_webhook_for_delete,
     emit_webhooks_for_instance,
+    get_nested_field,
 )
 
 logger = logging.getLogger(__name__)
@@ -433,14 +434,50 @@ class AnnotationAPI(generics.RetrieveUpdateDestroyAPIView):
     def get(self, request, *args, **kwargs):
         return super(AnnotationAPI, self).get(request, *args, **kwargs)
 
-    @api_webhook(WebhookAction.ANNOTATION_UPDATED)
     @swagger_auto_schema(auto_schema=None)
     def put(self, request, *args, **kwargs):
-        return super(AnnotationAPI, self).put(request, *args, **kwargs)
+        response = super(AnnotationAPI, self).put(request, *args, **kwargs)
 
-    @api_webhook(WebhookAction.ANNOTATION_UPDATED)
+        action_meta = WebhookAction.ACTIONS[WebhookAction.ANNOTATION_UPDATED]
+        many = action_meta['many']
+        instance = action_meta['model'].objects.get(id=response.data.get('id'))
+        if many:
+            instance = [instance]
+        project = None
+        if 'project-field' in action_meta:
+            project = get_nested_field(instance, action_meta['project-field'])
+        
+        if project.start_training_on_annotation_update:
+            emit_webhooks_for_instance(
+                request.user.active_organization,
+                project,
+                WebhookAction.ANNOTATION_UPDATED,
+                instance,
+            )
+        return response
+
     def patch(self, request, *args, **kwargs):
-        return super(AnnotationAPI, self).patch(request, *args, **kwargs)
+        response = super(AnnotationAPI, self).patch(request, *args, **kwargs)
+
+        action_meta = WebhookAction.ACTIONS[WebhookAction.ANNOTATION_UPDATED]
+        many = action_meta['many']
+        instance = action_meta['model'].objects.get(id=response.data.get('id'))
+        if many:
+            instance = [instance]
+        project = None
+        if 'project-field' in action_meta:
+            project = get_nested_field(instance, action_meta['project-field'])
+        
+        if project.start_training_on_annotation_update:
+            emit_webhooks_for_instance(
+                request.user.active_organization,
+                project,
+                WebhookAction.ANNOTATION_UPDATED,
+                instance,
+            )
+        return response
+
+
 
     @api_webhook_for_delete(WebhookAction.ANNOTATIONS_DELETED)
     def delete(self, request, *args, **kwargs):
@@ -519,9 +556,26 @@ class AnnotationsListAPI(GetParentObjectMixin, generics.ListCreateAPIView):
     def get(self, request, *args, **kwargs):
         return super(AnnotationsListAPI, self).get(request, *args, **kwargs)
 
-    @api_webhook(WebhookAction.ANNOTATION_CREATED)
     def post(self, request, *args, **kwargs):
-        return super(AnnotationsListAPI, self).post(request, *args, **kwargs)
+        response = super(AnnotationsListAPI, self).post(request, *args, **kwargs)
+        action_meta = WebhookAction.ACTIONS[WebhookAction.ANNOTATION_CREATED]
+        many = action_meta['many']
+        instance = action_meta['model'].objects.get(id=response.data.get('id'))
+        if many:
+            instance = [instance]
+        project = None
+        if 'project-field' in action_meta:
+            project = get_nested_field(instance, action_meta['project-field'])
+        
+        if project.start_training_on_annotation_update:
+            emit_webhooks_for_instance(
+                request.user.active_organization,
+                project,
+                WebhookAction.ANNOTATION_CREATED,
+                instance,
+            )
+        return response
+
 
     def get_queryset(self):
         task = generics.get_object_or_404(Task.objects.for_user(self.request.user), pk=self.kwargs.get('pk', 0))
