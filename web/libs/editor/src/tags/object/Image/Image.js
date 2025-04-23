@@ -32,6 +32,7 @@ import { ImageEntityMixin } from "./ImageEntityMixin";
 import { ImageSelection } from "./ImageSelection";
 import { RELATIVE_STAGE_HEIGHT, RELATIVE_STAGE_WIDTH, SNAP_TO_PIXEL_MODE } from "../../../components/ImageView/Image";
 import MultiItemObjectBase from "../MultiItemObjectBase";
+import { hideHighAnnots, setMaxZoom } from "../../../components/ImageView/AnnotBubbleHandler";
 
 const IMAGE_PRELOAD_COUNT = 3;
 
@@ -871,6 +872,25 @@ const Model = types
       self.zoomingPositionY = clamp(y, minY, 0);
     },
 
+    _reevaluateHighAnnotBubbles() {
+      
+      const [width, height] = isFF(FF_DEV_3377)
+        ? [self.canvasSize.width, self.canvasSize.height]
+        : [self.containerWidth, self.containerHeight];
+      
+      const vbbox = self.viewPortBBoxCoords;
+      const normalizedBbox = [
+        vbbox.left/width*100,
+        vbbox.top/height*100,
+        vbbox.right/width*100,
+        vbbox.bottom/height*100
+      ];
+      setMaxZoom(Math.max(4, 1 / self.maxScale));
+      hideHighAnnots(self.regs, normalizedBbox, self.currentZoom);
+      
+      // hideHighAnnotsV2(self.regs, 300/self.currentZoom);
+    },
+
     resetZoomPositionToCenter() {
       const { stageComponentSize, zoomScale } = self;
       const { width, height } = stageComponentSize;
@@ -889,6 +909,7 @@ const Model = types
       self.setZoom(maxScale);
       self.updateImageAfterZoom();
       self.resetZoomPositionToCenter();
+      self._reevaluateHighAnnotBubbles();
     },
 
     sizeToOriginal() {
@@ -898,6 +919,7 @@ const Model = types
       self.setZoom(maxScale > 1 ? 1 : 1 / maxScale);
       self.updateImageAfterZoom();
       self.resetZoomPositionToCenter();
+      self._reevaluateHighAnnotBubbles();
     },
 
     sizeToAuto() {
@@ -905,6 +927,7 @@ const Model = types
       self.setZoom(1);
       self.updateImageAfterZoom();
       self.resetZoomPositionToCenter();
+      self._reevaluateHighAnnotBubbles();
     },
 
     handleZoom(val, mouseRelativePos = { x: self.canvasSize.width / 2, y: self.canvasSize.height / 2 }) {
@@ -916,12 +939,14 @@ const Model = types
           self.setZoom(1);
           self.setZoomPosition(0, 0);
           self.updateImageAfterZoom();
+          self._reevaluateHighAnnotBubbles();
           return;
         }
         if (zoomScale <= 1) {
           self.setZoom(zoomScale);
           self.setZoomPosition(0, 0);
           self.updateImageAfterZoom();
+          self._reevaluateHighAnnotBubbles();
           return;
         }
 
@@ -944,6 +969,7 @@ const Model = types
 
         self.setZoomPosition(zoomingPosition.x, zoomingPosition.y);
         self.updateImageAfterZoom();
+        self._reevaluateHighAnnotBubbles();
       }
     },
 

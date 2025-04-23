@@ -53,6 +53,7 @@
     "date-fns": "^2.20.1",
     "deep-equal": "^2.0.5",
     "emoji-regex": "^7.0.3",
+    "hdbscanjs": "^1.0.12",
     "history": "^4.10.1",
     "html-react-parser": "^1.2.4",
     "insert-after": "^0.1.4",
