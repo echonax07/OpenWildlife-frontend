@@ -954,6 +954,12 @@
         "decorators": ""
     },
     {
+        "url": "/api/ml/<int:pk>/<int:task_id>/force_train",
+        "module": "ml.api.MLBackendForceTrainAPI",
+        "name": "ml:api:ml-force-train",
+        "decorators": ""
+    },
+    {
         "url": "/api/ml/<int:pk>/predict/test",
         "module": "ml.api.MLBackendPredictTestAPI",
         "name": "ml:api:ml-predict-test",

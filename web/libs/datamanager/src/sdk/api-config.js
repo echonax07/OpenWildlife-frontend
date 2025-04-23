@@ -171,5 +171,16 @@ export const APIConfig = {
       path: "/../comments/:id",
       method: "delete",
     },
+
+    /** Train ML Backend **/
+    mlBackends: {
+      path: "/../ml",
+      method: "get",
+    },
+
+    forceTrainMLBackend: {
+      path: "/../ml/:pk/:task_id/force_train",
+      method: "post",
+    }
   },
 };

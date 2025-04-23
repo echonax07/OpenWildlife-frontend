@@ -60,9 +60,6 @@ class ProjectSerializer(FlexFieldsModelSerializer):
     parsed_label_config = serializers.JSONField(
         default=None, read_only=True, help_text='JSON-formatted labeling configuration'
     )
-    start_training_on_annotation_update = SerializerMethodField(
-        default=None, read_only=False, help_text='Start model training after any annotations are submitted or updated'
-    )
     config_has_control_tags = SerializerMethodField(
         default=None, read_only=True, help_text='Flag to detect is project ready for labeling'
     )

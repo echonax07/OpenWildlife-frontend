@@ -231,6 +231,16 @@ class MLBackend(models.Model):
             if current_train_job:
                 MLBackendTrainJob.objects.create(job_id=current_train_job, ml_backend=self)
         self.save()
+    
+    def force_train(self, task_ids):
+        train_response = self.api.force_train(self.project, task_ids)
+        if train_response.is_error:
+            logger.info(f'Force train failed for project {self}: {train_response.error_message}')
+            self.error_message = train_response.error_message
+        else:
+            self.state = MLBackendState.TRAINING
+        
+        self.save()
 
     def _predict(self, task):
         """This is low level prediction method that is used for debugging"""

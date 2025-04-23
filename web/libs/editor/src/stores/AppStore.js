@@ -583,6 +583,23 @@ export default types
       self.queuePosition = clamp(self.queuePosition + number, 1, self.queueTotal);
     }
 
+    function retrievePredictions() {
+      if (self.isSubmitting) return;
+      
+      getEnv(self).events.invoke("retrievePredictions", self);
+    }
+
+    function forceTrain() {
+      if (self.isSubmitting) return;
+      const entity = self.annotationStore.selected;
+
+      entity.beforeSend();
+
+      if (!entity.validate()) return;
+
+      getEnv(self).events.invoke("forceTrain", self);
+    }
+
     function submitAnnotation() {
       if (self.isSubmitting) return;
 
@@ -993,6 +1010,8 @@ export default types
       setTaskHistory,
       submitDraft,
       waitForDraftSubmission,
+      retrievePredictions,
+      forceTrain,
       submitAnnotation,
       updateAnnotation,
       acceptAnnotation,

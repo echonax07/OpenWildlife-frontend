@@ -212,6 +212,9 @@ class Project(ProjectMixin, models.Model):
         default=0,
         help_text='Minimum number of completed tasks after which model training is started',
     )
+    start_training_on_annotation_update = models.BooleanField(
+        _('start_training_on_annotation_update'), default=True, help_text='Start training on annotation update'
+    )
 
     control_weights = JSONField(
         _('control weights'),
@@ -319,6 +322,10 @@ class Project(ProjectMixin, models.Model):
     @property
     def num_drafts(self):
         return AnnotationDraft.objects.filter(task__project=self).count()
+
+    @property
+    def drafts(self):
+        return AnnotationDraft.objects.filter(task__project=self)
 
     @property
     def has_predictions(self):

@@ -205,6 +205,8 @@ export class LSFWrapper {
       onTaskLoad: this.onTaskLoad,
       onPresignUrlForProject: this.onPresignUrlForProject,
       onStorageInitialized: this.onStorageInitialized,
+      onRetrievePredictions: this.onRetrievePredictions,
+      onForceTrain: this.onForceTrain,
       onSubmitAnnotation: this.onSubmitAnnotation,
       onUpdateAnnotation: this.onUpdateAnnotation,
       onDeleteAnnotation: this.onDeleteAnnotation,
@@ -585,6 +587,64 @@ export class LSFWrapper {
       this.setAnnotation(annotationID);
     }
   };
+
+  onRetrievePredictions = async () => {
+    const { task } = this;
+
+    if (!task) return;
+
+    this.setLoading(true);
+    const deletions = await this.datamanager.apiCall("invokeAction", {
+      id: "delete_tasks_annotations",
+      project: this.datamanager.store.project.id,
+    }, {
+      "selectedItems": {
+        "all": false,
+        "included": [task.id],
+      }
+    })
+
+    console.log(deletions);
+
+    const predictions = await this.datamanager.apiCall("invokeAction", {
+      id: "retrieve_tasks_predictions",
+      project: this.datamanager.store.project.id,
+    }, {
+      "selectedItems": {
+        "all": false,
+        "included": [task.id],
+      }
+    });
+
+    await this.loadTask(task.id);
+    this.setLoading(false, true);
+
+    console.log(predictions);
+  }
+
+  onForceTrain = async () => {
+    const { task } = this;
+
+    if (!task) return;
+
+    const backends = await this.datamanager.apiCall("mlBackends", {
+      project: this.datamanager.store.project.id,
+    });
+
+
+    // TODO: if multiple backends are used, handle this
+    const backend = backends[0];
+    const training = await this.datamanager.apiCall("forceTrainMLBackend", {
+      pk: backend.id,
+      task_id: task.id,
+    });
+
+    if (training.status == 200) {
+      this.datamanager.invoke("toast", { message: "Training started. Please wait until training is complete before re-predicting", type: "info" });
+    }
+
+    console.log(training);
+  }
 
   /** @private */
   onSubmitAnnotation = async () => {
