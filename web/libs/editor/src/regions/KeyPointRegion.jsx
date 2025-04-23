@@ -1,5 +1,5 @@
 import { Fragment, useContext } from "react";
-import { Circle } from "react-konva";
+import { Circle, Text } from "react-konva";
 import { getRoot, types } from "mobx-state-tree";
 
 import Registry from "../core/Registry";
@@ -83,6 +83,7 @@ const Model = types
 
     x: types.number,
     y: types.number,
+    count: types.optional(types.number, -1),
 
     width: types.number,
     negative: false,
@@ -121,6 +122,9 @@ const Model = types
     },
   }))
   .actions((self) => ({
+    setCount(count) {
+      self.count = count;
+    },
     setPosition(x, y) {
       const point = self.control?.getSnappedPoint({
         x: self.parent.canvasToInternalX(x),
@@ -222,7 +226,7 @@ const HtxKeyPointView = ({ item, setShapeRef }) => {
         y={item.canvasY}
         ref={(el) => setShapeRef(el)}
         // keypoint should always be the same visual size
-        radius={Math.max(item.canvasWidth, 2) / item.parent?.zoomScale}
+        radius={(item.count > 0 ? 4 : 1) * Math.max(item.canvasWidth, 2) / item.parent?.zoomScale}
         // fixes performance, but opactity+borders might look not so good
         perfectDrawEnabled={false}
         // for some reason this scaling doesn't work, so moved this to radius
@@ -283,8 +287,25 @@ const HtxKeyPointView = ({ item, setShapeRef }) => {
         {...props}
         draggable={!item.isReadOnly()}
         listening={!suggestion}
-      />
-      <LabelOnKP item={item} color={regionStyles.strokeColor} />
+        />  
+        {
+          item.count > 0 && (
+          <Text
+            x={item.canvasX}
+            y={item.canvasY}
+            ref={(el) => setShapeRef(el)}
+            name={`${item.id} _transformable`}
+            text={String(item.count)}
+            fontSize={Math.max(item.canvasWidth, 2) / item.parent?.zoomScale * 3}
+            fill={"#fff"}
+            align="center"
+            verticalAlign="middle"
+            offsetX={Math.max(item.canvasWidth, 2) / item.parent?.zoomScale*1.5}
+            offsetY={Math.max(item.canvasWidth, 2) / item.parent?.zoomScale*1.5}  
+          />  
+          )
+        }
+        <LabelOnKP item={item} color={regionStyles.strokeColor} />
     </Fragment>
   );
 };

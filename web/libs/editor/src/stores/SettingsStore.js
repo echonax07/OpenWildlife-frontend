@@ -59,6 +59,8 @@ const SettingsModel = types
 
     preserveSelectedTool: types.optional(types.boolean, true),
 
+    highAnnotClustering: types.optional(types.boolean, true),
+
     enableSmoothing: types.optional(types.boolean, true),
 
     videoHopSize: types.optional(types.number, 10),
@@ -162,6 +164,10 @@ const SettingsModel = types
 
     togglepreserveSelectedTool() {
       self.preserveSelectedTool = !self.preserveSelectedTool;
+    },
+
+    toggleHighAnnotClustering() {
+      self.highAnnotClustering = !self.highAnnotClustering;
     },
 
     toggleHotkeys() {

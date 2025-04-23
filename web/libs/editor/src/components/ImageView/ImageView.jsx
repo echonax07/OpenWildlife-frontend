@@ -33,6 +33,7 @@ import {
 } from "../../utils/feature-flags";
 import { Pagination } from "../../common/Pagination/Pagination";
 import { Image } from "./Image";
+import { hideHighAnnots, initClusterManagers, setHighAnnotClusteringEnabled } from "./AnnotBubbleHandler";
 
 Konva.showWarnings = false;
 
@@ -78,7 +79,14 @@ const RegionsLayer = memo(({ regions, name, useLayers, showSelected = false }) =
   return useLayers === false ? content : <Layer name={name}>{content}</Layer>;
 });
 
-const Regions = memo(({ regions, useLayers = true, chunkSize = 15, suggestion = false, showSelected = false }) => {
+const Regions = memo(({ regions, useLayers = true, chunkSize = 15, suggestion = false, showSelected = false, isNewView = false, clusterHighAnnots = false }) => {
+  console.log("IS NEW VIEW", isNewView);
+  if (isNewView) {
+    initClusterManagers(regions);
+  }
+  
+  setHighAnnotClusteringEnabled(regions, clusterHighAnnots);
+  
   return (
     <ImageViewProvider value={{ suggestion }}>
       {(chunkSize ? chunks(regions, chunkSize) : regions).map((chunk, i) => (
@@ -1137,6 +1145,7 @@ const EntireStage = observer(
   },
 );
 
+let globalItem = null;
 const StageContent = observer(({ item, store, state, crosshairRef }) => {
   if (!isAlive(item)) return null;
   if (!store.task || !item.currentSrc) return null;
@@ -1181,6 +1190,8 @@ const StageContent = observer(({ item, store, state, crosshairRef }) => {
             regions={list}
             useLayers={isBrush === false}
             suggestion={isSuggestion}
+            isNewView={(item !== globalItem ? (globalItem = item, true) : false)}
+            clusterHighAnnots={store.settings.highAnnotClustering}
           />
         ) : (
           <Fragment key={groupName} />

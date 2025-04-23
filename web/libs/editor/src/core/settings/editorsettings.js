@@ -84,4 +84,14 @@ export default {
     onChangeEvent: "toggleSmoothing",
     defaultValue: true,
   },
+  highAnnotClustering: {
+    newUI: {
+      tags: "Image Tag",
+      title: "Enable keypoint clustering",
+      description: "Enables bubble clustering of keypoints in images with a large number of keypoint annotations",
+    },
+    defaultValue: true,
+    description: "Enable keypoint clustering",
+    onChangeEvent: "toggleHighAnnotClustering",
+  }
 };
