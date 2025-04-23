@@ -162,7 +162,7 @@ class MLApi(BaseHTTPAPI):
             if method == 'POST':
                 response = self.post(url=url, json=request, *args, **kwargs)
             else:
-                response = self.get(url=url, *args, **kwargs)
+                response = self.get(url=url, json=request, *args, **kwargs)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             error_string = str(e)
