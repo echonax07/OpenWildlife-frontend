@@ -208,7 +208,7 @@ const AnnotationStatisticsPanel: FC<any> = inject("store")(
                 <strong>{name}:</strong> {count}
               </div>
               ))}
-              <div><strong>Total Valid Regions:</strong> {totalCount}</div>
+              <div><strong>Total Valid Annotations:</strong> {totalCount}</div>
             </div>
           </Elem>
         );
