@@ -521,6 +521,10 @@ const AnnotationStoreModel = types
       return self._validator.validate(validatorName, data);
     };
 
+    const retrieveAllAnnotations = () => {
+      return self.annotations;
+    };
+
     const resetAnnotations = () => {
       self.selected = null;
       self.selectedHistory = null;
@@ -559,6 +563,7 @@ const AnnotationStoreModel = types
 
       deleteAnnotation,
       clearDeletedParents,
+      retrieveAllAnnotations,
       resetAnnotations,
     };
   });

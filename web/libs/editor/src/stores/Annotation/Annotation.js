@@ -501,6 +501,11 @@ const _Annotation = types
       destroy(area);
     },
 
+    retrieveAllRegions() {
+      let regions = Array.from(self.areas.values());
+      return regions;
+    },
+
     deleteAllRegions({ deleteReadOnly = false } = {}) {
       let regions = Array.from(self.areas.values());
 
