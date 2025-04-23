@@ -1,8 +1,8 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { Button, Spinner } from "../../../components";
 import { Description } from "../../../components/Description/Description";
-import { Form, Label, Toggle } from "../../../components/Form";
+import { Form, Label, Toggle, Select } from "../../../components/Form";
 import { modal } from "../../../components/Modal/Modal";
 import { EmptyState } from "../../../components/EmptyState/EmptyState";
 import { IconModels } from "../../../assets/icons";
@@ -21,6 +21,7 @@ export const MachineLearningSettings = () => {
   const [backends, setBackends] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [versions, setVersions] = useState([]);
 
   const fetchBackends = useCallback(async () => {
     setLoading(true);
@@ -35,6 +36,29 @@ export const MachineLearningSettings = () => {
     setLoading(false);
     setLoaded(true);
   }, [project, setBackends]);
+
+  const fetchVersions = useCallback(async() => {
+    if (!backends) {
+      fetchBackends().then(() => {
+        fetchVersions();
+      });
+      return;
+    }
+
+    if (backends && backends.at(0)) {
+      let backend_id = backends.at(0).id;
+      setLoading(true);
+      const response = await api.callApi("modelVersions", {
+        params: {
+          pk: backend_id,
+        }
+      })
+      console.log(response.versions);
+      if (response.versions) setVersions(response.versions);
+      setLoading(false);
+      setLoaded(true);
+    }
+  }, [backends, setVersions])
 
   const startTrainingModal = useCallback(
     (backend) => {
@@ -92,6 +116,7 @@ export const MachineLearningSettings = () => {
   useEffect(() => {
     if (project.id) {
       fetchBackends();
+      fetchVersions();
     }
   }, [project.id]);
 
@@ -163,6 +188,20 @@ export const MachineLearningSettings = () => {
                   description="This option will send a request to /train with information about annotations. You can use this to enable an Active Learning loop. You can also manually start training through model menu in its card."
                   name="start_training_on_annotation_update"
                 />
+              </div>
+
+              <br/>
+              <br/>
+
+              <div>
+              <Select
+                label="Select model version"
+                placeholder="Select an option"
+                options={versions}
+                onClick={fetchVersions}
+                name="model_version"
+                />
+
               </div>
             </Form.Row>
           )}
