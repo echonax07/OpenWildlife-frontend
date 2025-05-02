@@ -53,7 +53,9 @@ docker run -it -p 8080:8080 -v $(pwd)/mydata:/label-studio/data heartexlabs/labe
 #### Build a local image with Docker
 If you want to build a local image, run:
 ```bash
-docker build -t heartexlabs/label-studio:latest .
+# docker build -t heartexlabs/label-studio:latest .
+docker build -t heartexlabs/label-studio:latest --build-context ls_sdk=../label-studio-sdk . 
+
 ```
 
 ### Run with Docker Compose
