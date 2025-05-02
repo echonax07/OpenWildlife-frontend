@@ -174,7 +174,7 @@ drf-generators = "0.3.0"
 lockfile = ">=0.12.0"
 lxml = {extras = ["html_clean"], version = ">=4.9.4"}
 defusedxml = ">=0.7.1"
-numpy = "^1.26.4"
+numpy = ">=1.26.4"
 ordered-set = "4.0.2"
 pandas = ">=2.2.3"
 psycopg2-binary = "2.9.10"
@@ -203,8 +203,8 @@ django-migration-linter = "^5.1.0"
 setuptools = ">=75.4.0"
 
 # Humansignal repo dependencies
-label-studio-sdk = "1.0.8"
-
+# label-studio-sdk = "1.0.8"
+label-studio-sdk = { path = "../label-studio-sdk", develop = false }
 [tool.poetry.group.test.dependencies]
 pytest = "7.2.2"
 pytest-cov = "2.12.1"
@@ -222,6 +222,8 @@ s3transfer = "0.7.0"
 mock = ">=5.1.0"
 moto = ">=4.2.6"
 requests-mock = "1.12.1"
+label-studio-sdk = { path = "../label-studio-sdk", develop = true }
+openpyxl = "^3.1.0"
 [tool.poetry.group.build.dependencies]
 twine = ">=4.0.2"
 

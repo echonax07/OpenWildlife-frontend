@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.4
 ARG NODE_VERSION=18
 ARG PYTHON_VERSION=3.12
 ARG POETRY_VERSION=1.8.4
@@ -6,7 +6,6 @@ ARG VERSION_OVERRIDE
 ARG BRANCH_OVERRIDE
 
 ################################ Overview
-
 # This Dockerfile builds a Label Studio environment.
 # It consists of three main stages:
 # 1. "frontend-builder" - Compiles the frontend assets using Node.
@@ -26,6 +25,7 @@ ENV BUILD_NO_SERVER=true \
     NODE_ENV=production
 
 WORKDIR /label-studio/web
+
 
 # Fix Docker Arm64 Build
 RUN yarn config set registry https://registry.npmjs.org/
@@ -87,6 +87,9 @@ ENV PATH="$VENV_PATH/bin:$PATH"
 # Copy dependency files
 COPY pyproject.toml poetry.lock README.md ./
 
+# Bring in the local SDK clone (multi‐context alias)
+COPY --from=ls_sdk / /label-studio-sdk
+ENV LS_DIR=/label-studio
 # Install dependencies without dev packages
 RUN --mount=type=cache,target=$POETRY_CACHE_DIR,sharing=locked \
     poetry check --lock && poetry install --no-root --without test --extras uwsgi
@@ -109,6 +112,7 @@ RUN --mount=type=bind,source=.git,target=./.git \
 
 ################################### Stage: prod
 FROM python:${PYTHON_VERSION}-slim AS production
+
 
 ENV LS_DIR=/label-studio \
     HOME=/label-studio \
@@ -164,6 +168,9 @@ COPY --chown=1001:0 --from=frontend-builder           $LS_DIR/web/dist          
 COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/apps/labelstudio/version.json    $LS_DIR/web/dist/apps/labelstudio/version.json
 COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/editor/version.json         $LS_DIR/web/dist/libs/editor/version.json
 COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/datamanager/version.json    $LS_DIR/web/dist/libs/datamanager/version.json
+
+
+COPY --chown=1001:0 --from=venv-builder /label-studio-sdk /label-studio-sdk
 
 USER 1001
 
