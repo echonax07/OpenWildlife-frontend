@@ -594,8 +594,8 @@ export class LSFWrapper {
     if (!task) return;
 
     this.setLoading(true);
-    const deletions = await this.datamanager.apiCall("invokeAction", {
-      id: "delete_tasks_annotations",
+    const predictions_deletions = await this.datamanager.apiCall("invokeAction", {
+      id: "delete_tasks_predictions",
       project: this.datamanager.store.project.id,
     }, {
       "selectedItems": {
@@ -604,7 +604,7 @@ export class LSFWrapper {
       }
     })
 
-    console.log(deletions);
+    console.log(predictions_deletions);
 
     const predictions = await this.datamanager.apiCall("invokeAction", {
       id: "retrieve_tasks_predictions",
@@ -616,10 +616,24 @@ export class LSFWrapper {
       }
     });
 
-    await this.loadTask(task.id);
-    this.setLoading(false, true);
-
     console.log(predictions);
+
+    const annotations_deletions = await this.datamanager.apiCall("invokeAction", {
+      id: "delete_tasks_annotations",
+      project: this.datamanager.store.project.id,
+    }, {
+      "selectedItems": {
+        "all": false,
+        "included": [task.id],
+      }
+    })
+
+    console.log(annotations_deletions);
+
+    this.loadTask();
+    await this.loadTask(task.id, null, false);
+    // Force reloading of task
+    this.setLoading(false);
   }
 
   onForceTrain = async () => {
