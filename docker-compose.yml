@@ -1,16 +1,23 @@
 version: "3.9"
+networks:
+  labelstudio_shared:
+    external: true
 services:
   nginx:
-    build: .
-    image: heartexlabs/label-studio:latest
+    # build: .
+    image: label-studio:latest
+    container_name: ls_nginx
     restart: unless-stopped
     ports:
       - "8080:8085"
       - "8081:8086"
     depends_on:
       - app
+    networks:
+      - labelstudio_shared
     environment:
       - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
+      # - LABEL_STUDIO_HOST=ls_nginx:8085
     #   Optional: Specify SSL termination certificate & key
     #   Just drop your cert.pem and cert.key into folder 'deploy/nginx/certs'
     #      - NGINX_SSL_CERT=/certs/cert.pem
@@ -25,11 +32,13 @@ services:
   app:
     stdin_open: true
     tty: true
-    build: .
-    image: heartexlabs/label-studio:latest
+    # build: .
+    image: label-studio:latest
     restart: unless-stopped
     expose:
       - "8000"
+    networks:
+      - labelstudio_shared
     depends_on:
       - db
     environment:
@@ -40,6 +49,7 @@ services:
       - POSTGRE_PORT=5432
       - POSTGRE_HOST=db
       - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
+      # - LABEL_STUDIO_HOST=ls_nginx:8085
       - JSON_LOG=1
     #      - LOG_LEVEL=DEBUG
     volumes:
@@ -50,6 +60,8 @@ services:
     image: pgautoupgrade/pgautoupgrade:13-alpine
     hostname: db
     restart: unless-stopped
+    networks:
+      - labelstudio_shared
     # Optional: Enable TLS on PostgreSQL
     # Just drop your server.crt and server.key into folder 'deploy/pgsql/certs'
     # NOTE: Both files must have permissions u=rw (0600) or less
@@ -58,6 +70,7 @@ services:
     #      -c ssl_cert_file=/var/lib/postgresql/certs/server.crt
     #      -c ssl_key_file=/var/lib/postgresql/certs/server.key
     environment:
+      - POSTGRES_USER=postgres
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - ${POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql/data

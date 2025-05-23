@@ -170,4 +170,6 @@ USER 1001
 EXPOSE 8080
 
 ENTRYPOINT ["./deploy/docker-entrypoint.sh"]
+# CMD ["label-studio", "--enable-legacy-api-token"]
 CMD ["label-studio"]
+
