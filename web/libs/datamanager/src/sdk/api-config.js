@@ -181,6 +181,12 @@ export const APIConfig = {
     forceTrainMLBackend: {
       path: "/../ml/:pk/:task_id/force_train",
       method: "post",
+    },
+
+    /** Predict ML Backend */
+    forcePredictMLBackend: {
+      path: "/../ml/:pk/:task_id/force_predict",
+      method: "post",
     }
   },
 };

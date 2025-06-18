@@ -349,6 +349,48 @@ class MLBackend(models.Model):
                 )
         return predictions
 
+    def predict_tasks_no_update(self, task_ids):
+        model_version = self.update_state()
+        if self.not_ready:
+            logger.debug(f'ML backend {self} is not ready')
+            return
+
+        from tasks.models import Task
+        tasks = Task.objects.filter(id__in=task_ids)        
+        tasks_ser = TaskSimpleSerializer(tasks, many=True).data
+        
+        if len(tasks_ser) == 0:
+            return None
+                
+        # TODO: Assumes all tasks are in the same project
+        project = tasks[0].project
+        drafts = project.drafts.filter(task__id__in=task_ids)
+
+        from tasks.serializers import AnnotationDraftSerializer
+        drafts_ser = AnnotationDraftSerializer(drafts, many=True, default=[], read_only=True).data
+
+        # If drafts are present, replace annotations with drafts
+        # TODO: this currently only works for one task
+        if len(drafts_ser) > 0:
+            tasks_ser[0]["annotations"] = [drafts_ser[0]]
+            tasks_ser[0]["predictions"] = []
+        else:
+            # Turn predictions into annotations if there are no annotations
+            for task in tasks_ser:
+                if len(task["annotations"]) == 0 and len(task["predictions"]) > 0:
+                    task["annotations"] = task["predictions"]
+                    task["predictions"] = []
+        
+        predictions = self._get_predictions_from_ml_backend(tasks_ser)
+        return predictions
+
+    def update_predictions(selef, predictions):
+        with conditional_atomic(predicate=db_is_not_sqlite):
+            prediction_ser = PredictionSerializer(data=predictions, many=True)
+            prediction_ser.is_valid(raise_exception=True)
+            instances = prediction_ser.save()
+        return instances
+
     def predict_tasks(self, tasks):
         model_version = self.update_state()
         if self.not_ready:
