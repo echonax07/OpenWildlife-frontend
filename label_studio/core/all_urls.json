@@ -960,6 +960,12 @@
         "decorators": ""
     },
     {
+        "url": "/api/ml/<int:pk>/<int:task_id>/force_predict",
+        "module": "ml.api.MLBackendForcePredictAPI",
+        "name": "ml:api:ml-force-predict",
+        "decorators": ""
+    },
+    {
         "url": "/api/ml/<int:pk>/predict/test",
         "module": "ml.api.MLBackendPredictTestAPI",
         "name": "ml:api:ml-predict-test",

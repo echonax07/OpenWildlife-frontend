@@ -593,47 +593,26 @@ export class LSFWrapper {
 
     if (!task) return;
 
-    this.setLoading(true);
-    const predictions_deletions = await this.datamanager.apiCall("invokeAction", {
-      id: "delete_tasks_predictions",
+    const backends = await this.datamanager.apiCall("mlBackends", {
       project: this.datamanager.store.project.id,
-    }, {
-      "selectedItems": {
-        "all": false,
-        "included": [task.id],
-      }
-    })
-
-    console.log(predictions_deletions);
-
-    const predictions = await this.datamanager.apiCall("invokeAction", {
-      id: "retrieve_tasks_predictions",
-      project: this.datamanager.store.project.id,
-    }, {
-      "selectedItems": {
-        "all": false,
-        "included": [task.id],
-      }
     });
 
-    console.log(predictions);
 
-    const annotations_deletions = await this.datamanager.apiCall("invokeAction", {
-      id: "delete_tasks_annotations",
-      project: this.datamanager.store.project.id,
-    }, {
-      "selectedItems": {
-        "all": false,
-        "included": [task.id],
-      }
-    })
-
-    console.log(annotations_deletions);
-
-    this.loadTask();
-    await this.loadTask(task.id, null, false);
-    // Force reloading of task
+    // TODO: if multiple backends are used, handle this
+    this.setLoading(true);
+    const backend = backends[0];
+    const prediction = await this.datamanager.apiCall("forcePredictMLBackend", {
+      pk: backend.id,
+      task_id: task.id,
+    });
     this.setLoading(false);
+    try {
+      this.datamanager.reload();
+    } catch (e) {
+      console.error("Error reloading task", e);
+    }
+    // this.loadTask(task.id, null, true)
+    console.log(prediction)
   }
 
   onForceTrain = async () => {
@@ -685,6 +664,13 @@ export class LSFWrapper {
     else if (status !== undefined)
       this.datamanager.invoke("toast", { message: "There was an error saving your Annotation", type: "error" });
 
+    // TODO: this is a hack to ignore the "addNodeToCache" error that occurs. Need to handle it properly
+    // It currently seems to have no effect on the app however
+    try {
+      this.datamanager.reload();
+    } catch (e) {
+      console.error("Error reloading task", e);
+    }
     if (exitStream) return this.exitStream();
   };
 

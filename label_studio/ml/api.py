@@ -378,6 +378,89 @@ class MLBackendPredictTestAPI(APIView):
     decorator=swagger_auto_schema(
         tags=['Machine Learning'],
         x_fern_sdk_group_name='ml',
+        x_fern_sdk_method_name='force_predict',
+        x_fern_audiences=['internal'],
+        operation_summary='Force re-prediction',
+        operation_description="""
+        Re-predict on a specific task ID.
+        """,
+        manual_parameters=[
+            openapi.Parameter(
+                name='id',
+                type=openapi.TYPE_INTEGER,
+                in_=openapi.IN_PATH,
+                description='A unique integer value identifying this ML backend.',
+            ),
+            openapi.Parameter(
+                name='task_id',
+                type=openapi.TYPE_INTEGER,
+                in_=openapi.IN_PATH,
+                description='A unique integer value identifying this ML backend.',
+            ),
+        ],
+        responses={
+            200: openapi.Response(description='Prediction complete.'),
+            500: openapi.Response(
+                description='Predicting error',
+                schema=openapi.Schema(
+                    description='Error message',
+                    type=openapi.TYPE_STRING,
+                    example='Server responded with an error.',
+                ),
+            ),
+        },
+    ),
+)
+class MLBackendForcePredictAPI(APIView):
+    serializer_class = MLBackendSerializer
+    permission_required = all_permissions.projects_change
+
+    def post(self, request, *args, **kwargs):
+        ml_backend = generics.get_object_or_404(MLBackend, pk=self.kwargs['pk'])
+        self.check_object_permissions(self.request, ml_backend)
+
+        # TODO: support multiple task IDs
+        task_ids = [self.kwargs['task_id']]
+        predictions = ml_backend.predict_tasks_no_update(task_ids)
+        if not predictions:
+            return Response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                data={
+                    'detail': 'ML backend did not return any predictions, check ML backend logs for more details'
+                },
+            )
+        
+        # Delete existing predictions and annotations
+        task = Task.objects.filter(id=self.kwargs['task_id']).first()
+        if task:
+            for annotation in task.annotations.all():
+                annotation.delete()
+            for prediction in task.predictions.all():
+                prediction.delete()
+        
+        # Delete existing draft for the task
+        from tasks.models import AnnotationDraft
+        query_args = {'task': task}
+        drafts = AnnotationDraft.objects.filter(**query_args)
+        for draft in drafts:
+            draft.delete()
+
+        # Create new predictions
+        ml_backend.update_predictions(predictions)
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data={
+                'detail': 'Prediction successfully completed.',
+                'predictions': predictions,
+            },
+        )
+
+@method_decorator(
+    name='post',
+    decorator=swagger_auto_schema(
+        tags=['Machine Learning'],
+        x_fern_sdk_group_name='ml',
         x_fern_sdk_method_name='predict_interactive',
         x_fern_audiences=['public'],
         operation_summary='Request Interactive Annotation',
