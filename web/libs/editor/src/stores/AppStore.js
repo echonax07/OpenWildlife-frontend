@@ -600,11 +600,39 @@ export default types
       getEnv(self).events.invoke("forceTrain", self);
     }
 
+    function applyConfidenceThreshold() {
+      const entity = self.annotationStore.selected;
+      const { confidenceThreshold } = self.settings;
+
+      if (confidenceThreshold && confidenceThreshold > 0) {
+        const { regions } = entity.regionStore;
+        let regionsToDelete = [];
+        for (const region of regions) {
+          if (region.origin == "prediction" && region.score < confidenceThreshold) {
+            regionsToDelete.push(region);
+          }
+        }
+        if (regionsToDelete.length > 0) {
+          const confirmed = window.confirm(
+            `A confidence threshold was previously specified and ${regionsToDelete.length} annotations with a` +
+            ` score of less than ${confidenceThreshold} will be deleted. Would you like to continue?` +
+            ` To reset this, set the confidence threshold back to 0.`
+          );
+          if (!confirmed) return;
+        }
+        for (const region of regionsToDelete) {
+          entity.deleteRegion(region);
+        }
+      }
+    }
+
     function submitAnnotation() {
       if (self.isSubmitting) return;
 
       const entity = self.annotationStore.selected;
       const event = entity.exists ? "updateAnnotation" : "submitAnnotation";
+
+      self.applyConfidenceThreshold();
 
       entity.beforeSend();
 
@@ -636,6 +664,8 @@ export default types
       if (self.isSubmitting) return;
 
       const entity = self.annotationStore.selected;
+      
+      self.applyConfidenceThreshold();
 
       entity.beforeSend();
 
@@ -1012,6 +1042,7 @@ export default types
       waitForDraftSubmission,
       retrievePredictions,
       forceTrain,
+      applyConfidenceThreshold,
       submitAnnotation,
       updateAnnotation,
       acceptAnnotation,
