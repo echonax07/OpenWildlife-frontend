@@ -1,4 +1,4 @@
-import { observer } from "mobx-react";
+import { inject, observer } from "mobx-react";
 import { type FC, useCallback, useEffect, useMemo, useState } from "react";
 import { Block, Elem } from "../../../utils/bem";
 import { PanelBase, type PanelProps } from "../PanelBase";
@@ -9,10 +9,12 @@ import { IconInfo } from "../../../assets/icons/outliner";
 import { FF_LSDV_4992, FF_OUTLINER_OPTIM, isFF } from "../../../utils/feature-flags";
 
 interface OutlinerPanelProps extends PanelProps {
+  store: any;
   regions: any;
 }
 
 interface OutlinerTreeComponentProps {
+  store: any;
   regions: any;
 }
 
@@ -25,8 +27,36 @@ if (isFF(FF_OUTLINER_OPTIM)) {
   OutlinerFFClasses.push("ff_outliner_optim");
 }
 
-const OutlinerPanelComponent: FC<OutlinerPanelProps> = ({ regions, ...props }) => {
+const setHidden = (region: any, hidden: boolean) => {
+    if (region && region.hidden !== hidden) {
+      region.toggleHidden();
+    }
+}
+
+const OutlinerPanelComponent: FC<OutlinerPanelProps> = ({ store, regions, ...props }) => {
   const [group, setGroup] = useState();
+  const [confidenceThreshold, setConfidenceThreshold] = useState(0);
+
+  const onConfThreshChange = useCallback(
+    (value) => {
+      setConfidenceThreshold(value);
+      // Value comes in as a number between 0 and 100. Convert it to a decimal.
+      value = value/100;
+      store.settings.confidenceThreshold = value; // This is later used during submission to create an alert message.
+      for (const region of regions.regions) {
+        // For prediction-changed or user generated regions, we never hide them based on confidence.
+        if (region.origin == "prediction") {
+          setHidden(region, region.score < value);
+          const { history } = store.annotationStore.selected;
+          if (!history.canUndo) {
+            history.recordNow();
+          }
+        }
+      }
+    },
+    [regions],
+  );
+
   const onOrderingChange = useCallback(
     (value) => {
       regions.setSort(value);
@@ -59,10 +89,12 @@ const OutlinerPanelComponent: FC<OutlinerPanelProps> = ({ regions, ...props }) =
     <PanelBase {...props} name="outliner" mix={OutlinerFFClasses} title="Outliner">
       <ViewControls
         ordering={regions.sort}
+        confidenceThreshold={confidenceThreshold}
         regions={regions}
         orderingDirection={regions.sortOrder}
         onOrderingChange={onOrderingChange}
         onGroupingChange={onGroupingChange}
+        onConfThreshChange={onConfThreshChange}
         onFilterChange={onFilterChange}
       />
       <OutlinerTreeComponent regions={regions} />
@@ -70,7 +102,29 @@ const OutlinerPanelComponent: FC<OutlinerPanelProps> = ({ regions, ...props }) =
   );
 };
 
-const OutlinerStandAlone: FC<OutlinerPanelProps> = ({ regions }) => {
+const OutlinerStandAlone: FC<OutlinerPanelProps> = ({ store, regions }) => {
+  const [confidenceThreshold, setConfidenceThreshold] = useState(0);
+
+  const onConfThreshChange = useCallback(
+    (value) => {
+      setConfidenceThreshold(value);
+      // Value comes in as a number between 0 and 100. Convert it to a decimal.
+      value = value/100;
+      store.settings.confidenceThreshold = value; // This is later used during submission to create an alert message.
+      for (const region of regions.regions) {
+        // For prediction-changed or user generated regions, we never hide them based on confidence.
+        if (region.origin == "prediction") {
+          setHidden(region, region.score < value);
+          const { history } = store.annotationStore.selected;
+          if (!history.canUndo) {
+            history.recordNow();
+          }
+        }
+      }
+    },
+    [regions],
+  );
+
   const onOrderingChange = useCallback(
     (value) => {
       regions.setSort(value);
@@ -96,10 +150,13 @@ const OutlinerStandAlone: FC<OutlinerPanelProps> = ({ regions }) => {
     <Block name="outliner" mix={OutlinerFFClasses}>
       <ViewControls
         ordering={regions.sort}
+        confidenceThreshold={confidenceThreshold}
         regions={regions}
         orderingDirection={regions.sortOrder}
+        showConfThresh={!store.settings.highAnnotClustering}
         onOrderingChange={onOrderingChange}
         onGroupingChange={onGroupingChange}
+        onConfThreshChange={onConfThreshChange}
         onFilterChange={onFilterChange}
       />
       <OutlinerTreeComponent regions={regions} />
@@ -148,6 +205,6 @@ const OutlinerTreeComponent: FC<OutlinerTreeComponentProps> = observer(({ region
   );
 });
 
-export const OutlinerComponent = observer(OutlinerStandAlone);
+export const OutlinerComponent = inject("store")(observer(OutlinerStandAlone));
 
-export const OutlinerPanel = observer(OutlinerPanelComponent);
+export const OutlinerPanel = inject("store")(observer(OutlinerPanelComponent));

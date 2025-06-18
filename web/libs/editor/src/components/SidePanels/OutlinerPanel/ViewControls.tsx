@@ -2,6 +2,7 @@ import { type FC, useCallback, useContext, useMemo } from "react";
 import {
   IconCursor,
   IconDetails,
+  IconFilter,
   IconList,
   IconOutlinerEyeClosed,
   IconOutlinerEyeOpened,
@@ -22,6 +23,7 @@ import { SidePanelsContext } from "../SidePanelsContext";
 import "./ViewControls.scss";
 import { FF_DEV_3873, FF_LSDV_4992, isFF } from "../../../utils/feature-flags";
 import { observer } from "mobx-react";
+import { IconConfig } from "libs/editor/src/assets/icons/timeline";
 
 const { Block, Elem } = BemWithSpecifiContext();
 
@@ -34,14 +36,17 @@ export type OrderingDirection = "asc" | "desc";
 interface ViewControlsProps {
   ordering: OrderingOptions;
   orderingDirection?: OrderingDirection;
+  confidenceThreshold: number;
   regions: any;
+  showConfThresh: boolean;
   onOrderingChange: (ordering: OrderingOptions) => void;
   onGroupingChange: (grouping: GroupingOptions) => void;
+  onConfThreshChange: (confidence: number) => void;
   onFilterChange: (filter: any) => void;
 }
 
 export const ViewControls: FC<ViewControlsProps> = observer(
-  ({ ordering, regions, orderingDirection, onOrderingChange, onGroupingChange, onFilterChange }) => {
+  ({ ordering, confidenceThreshold, regions, showConfThresh, orderingDirection, onOrderingChange, onGroupingChange, onConfThreshChange, onFilterChange }) => {
     const grouping = regions.group;
     const context = useContext(SidePanelsContext);
     const getGroupingLabels = useCallback((value: GroupingOptions): LabelInfo => {
@@ -115,6 +120,13 @@ export const ViewControls: FC<ViewControlsProps> = observer(
             />
           </Elem>
         )}
+        <Elem name="filter">
+          <DropdownSlider
+            value={confidenceThreshold}
+            onChange={(v) => onConfThreshChange(v)}
+            enabled={showConfThresh}
+          />
+        </Elem>
         {isFF(FF_LSDV_4992) ? <ToggleRegionsVisibilityButton regions={regions} /> : null}
       </Block>
     );
@@ -136,6 +148,69 @@ interface GroupingProps<T extends string> {
   onChange: (value: T) => void;
   readableValueForKey: (value: T) => LabelInfo;
   extraIcon?: JSX.Element;
+}
+
+interface DropdownSliderProps {
+  value: number;
+  onChange: (value: number) => void;
+  extraIcon?: JSX.Element;
+}
+
+const DropdownSlider = ({
+  value,
+  onChange,
+  enabled,
+  extraIcon
+}: DropdownSliderProps) => {
+
+  // mods are already set in the button from type, so use it only in new UI
+  const extraStyles = isFF(FF_DEV_3873) ? { mod: { newUI: true } } : undefined;
+  const style = isFF(FF_LSDV_4992)
+    ? {}
+    : {
+        padding: "0",
+        whiteSpace: "nowrap",
+      };
+
+  if (isFF(FF_DEV_3873)) {
+    style.padding = "0 12px 0 2px";
+  }
+
+  const renderConfSlider = useMemo(() => {
+    return (
+      <Elem name="slider" style={{ padding: "12px" }}>
+        <Elem name="slider-content">
+          <Elem name="slider-label">Confidence Threshold: {value/100}</Elem>
+          <Elem name="slider-input">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+          </Elem>
+        </Elem>
+      </Elem>
+    );
+  }, [value, onChange]);
+
+  return (
+    <Dropdown.Trigger content={
+      enabled ? renderConfSlider : <Elem name="disabled-slider" style={{ padding: "12px" }}>Disable keypoint clustering in settings to enable the confidence slider.</Elem>
+    } style={{ width: 200 }}>
+      <Button
+        type="text"
+        data-testid={`conf-slider-${value}`}
+        {...extraStyles}
+        icon={<IconFilter style={{ color: "#898098" }} />}
+        style={style}
+        extra={extraIcon}
+      >
+        Conf Thresh
+      </Button>
+    </Dropdown.Trigger>
+  );
 }
 
 const Grouping = <T extends string>({
