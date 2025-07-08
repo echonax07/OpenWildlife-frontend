@@ -91,6 +91,7 @@ def create_file_upload(user, project, file):
             original_instance.file.truncate()
 
     original_instance.save()
+    logger.debug(f"Saved {file.name}")
 
     # Create thumbnail instance for raster images
     try:
@@ -136,6 +137,7 @@ def create_file_upload(user, project, file):
                     file=thumbnail_file
                 )
                 thumbnail_instance.save()
+                logger.debug(f"Saved {file.name}'s thumbnail")
 
     except Exception as e:
         logger.error(f"Thumbnail generation failed for {original_instance.file.name}: {str(e)}")
