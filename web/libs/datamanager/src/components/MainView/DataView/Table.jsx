@@ -4,7 +4,12 @@ import { useCallback, useMemo } from "react";
 import { FaQuestionCircle } from "react-icons/fa";
 import { useShortcut } from "../../../sdk/hotkeys";
 import { Block, Elem } from "../../../utils/bem";
-import { FF_DEV_2536, FF_LOPS_86, FF_OPTIC_2, isFF } from "../../../utils/feature-flags";
+import {
+  FF_DEV_2536,
+  FF_LOPS_86,
+  FF_OPTIC_2,
+  isFF
+} from "../../../utils/feature-flags";
 import * as CellViews from "../../CellViews";
 import { Icon } from "../../Common/Icon/Icon";
 import { ImportButton } from "../../Common/SDKButtons";
@@ -35,8 +40,12 @@ const injector = inject(({ store }) => {
     total: dataStore?.total ?? 0,
     isLoading: dataStore?.loading ?? true,
     isLocked: currentView?.locked ?? false,
-    hasData: (store.project?.task_count ?? store.project?.task_number ?? dataStore?.total ?? 0) > 0,
-    focusedItem: dataStore?.selected ?? dataStore?.highlighted,
+    hasData:
+      (store.project?.task_count ??
+        store.project?.task_number ??
+        dataStore?.total ??
+        0) > 0,
+    focusedItem: dataStore?.selected ?? dataStore?.highlighted
   };
 
   return props;
@@ -59,20 +68,9 @@ export const DataView = injector(
     isLocked,
     ...props
   }) => {
-    // Turn off full-resolution image display
-    // TODO: Allow this to be undone through the columns checkbox
-    if (!hiddenColumns.includes("tasks:data.image")) {
-      hiddenColumns.push("tasks:data.image");
-    }
-
-    // Override thumbnail types from unknown to images for proper formatting in grid table views
-    columns.forEach(column => {
-      if (column.id === "tasks:data.thumbnail") {
-        Object.assign(column, { type: "Image", currentType: "Image" });
-      }
-    });
-
-    const [datasetStatusID, setDatasetStatusID] = useState(store.SDK.dataset?.status?.id);
+    const [datasetStatusID, setDatasetStatusID] = useState(
+      store.SDK.dataset?.status?.id
+    );
     const focusedItem = useMemo(() => {
       return props.focusedItem;
     }, [props.focusedItem]);
@@ -91,45 +89,59 @@ export const DataView = injector(
 
         return !hasNextPage || rowExists;
       },
-      [dataStore.hasNextPage],
+      [dataStore.hasNextPage]
     );
 
-    const columnHeaderExtra = useCallback(({ parent, original, help }, decoration) => {
-      const children = [];
+    const columnHeaderExtra = useCallback(
+      ({ parent, original, help }, decoration) => {
+        const children = [];
 
-      if (parent) {
-        children.push(
-          <Tag
-            key="column-type"
-            color="blue"
-            style={{ fontWeight: "500", fontSize: 14, cursor: "pointer", width: 45, padding: 0 }}
-          >
-            {original?.readableType ?? parent.title}
-          </Tag>,
-        );
-      }
+        if (parent) {
+          children.push(
+            <Tag
+              key="column-type"
+              color="blue"
+              style={{
+                fontWeight: "500",
+                fontSize: 14,
+                cursor: "pointer",
+                width: 45,
+                padding: 0
+              }}
+            >
+              {original?.readableType ?? parent.title}
+            </Tag>
+          );
+        }
 
-      if (help && decoration?.help !== false) {
-        children.push(
-          <Tooltip key="help-tooltip" title={help}>
-            <Icon icon={FaQuestionCircle} style={{ opacity: 0.5 }} />
-          </Tooltip>,
-        );
-      }
+        if (help && decoration?.help !== false) {
+          children.push(
+            <Tooltip key="help-tooltip" title={help}>
+              <Icon icon={FaQuestionCircle} style={{ opacity: 0.5 }} />
+            </Tooltip>
+          );
+        }
 
-      return children.length ? <>{children}</> : null;
-    }, []);
+        return children.length ? <>{children}</> : null;
+      },
+      []
+    );
 
     const onSelectAll = useCallback(() => view.selectAll(), [view]);
 
-    const onRowSelect = useCallback((id) => view.toggleSelected(id), [view]);
+    const onRowSelect = useCallback(id => view.toggleSelected(id), [view]);
 
     const onRowClick = useCallback(
       async (item, e) => {
         const itemID = item.task_id ?? item.id;
 
         if (store.SDK.type === "DE") {
-          store.SDK.invoke("recordPreview", item, columns, getRoot(view).taskStore.associatedList);
+          store.SDK.invoke(
+            "recordPreview",
+            item,
+            columns,
+            getRoot(view).taskStore.associatedList
+          );
         } else if (e.metaKey || e.ctrlKey) {
           window.open(`./?task=${itemID}`, "_blank");
         } else {
@@ -137,11 +149,11 @@ export const DataView = injector(
           getRoot(view).startLabeling(item);
         }
       },
-      [view, columns],
+      [view, columns]
     );
 
     const renderContent = useCallback(
-      (content) => {
+      content => {
         if (isLoading && total === 0 && !isLabeling) {
           return (
             <Block name="fill-container">
@@ -149,7 +161,10 @@ export const DataView = injector(
             </Block>
           );
         }
-        if (store.SDK.type === "DE" && ["canceled", "failed"].includes(datasetStatusID)) {
+        if (
+          store.SDK.type === "DE" &&
+          ["canceled", "failed"].includes(datasetStatusID)
+        ) {
           return (
             <Block name="syncInProgress">
               <Elem name="title" tag="h3">
@@ -157,7 +172,9 @@ export const DataView = injector(
               </Elem>
               {isFF(FF_LOPS_86) ? (
                 <>
-                  <Elem name="text">Check your storage settings and resync to import records</Elem>
+                  <Elem name="text">
+                    Check your storage settings and resync to import records
+                  </Elem>
                   <Button
                     onClick={async () => {
                       window.open("./settings/storage");
@@ -167,7 +184,10 @@ export const DataView = injector(
                   </Button>
                 </>
               ) : (
-                <Elem name="text">Check your storage settings. You may need to recreate this dataset</Elem>
+                <Elem name="text">
+                  Check your storage settings. You may need to recreate this
+                  dataset
+                </Elem>
               )}
             </Block>
           );
@@ -182,20 +202,30 @@ export const DataView = injector(
               <Elem name="title" tag="h3">
                 Nothing found
               </Elem>
-              <Elem name="text">Try adjusting the filter or similarity search parameters</Elem>
+              <Elem name="text">
+                Try adjusting the filter or similarity search parameters
+              </Elem>
             </Block>
           );
         }
-        if (store.SDK.type === "DE" && (total === 0 || data.length === 0 || !hasData)) {
+        if (
+          store.SDK.type === "DE" &&
+          (total === 0 || data.length === 0 || !hasData)
+        ) {
           return (
             <Block name="syncInProgress">
               <Elem name="title" tag="h3">
                 Hang tight! Records are syncing in the background
               </Elem>
-              <Elem name="text">Press the button below to see any synced records</Elem>
+              <Elem name="text">
+                Press the button below to see any synced records
+              </Elem>
               <Button
                 onClick={async () => {
-                  await store.fetchProject({ force: true, interaction: "refresh" });
+                  await store.fetchProject({
+                    force: true,
+                    interaction: "refresh"
+                  });
                   await store.currentView?.reload();
                 }}
               >
@@ -230,14 +260,16 @@ export const DataView = injector(
 
         return content;
       },
-      [hasData, isLabeling, isLoading, total, datasetStatusID],
+      [hasData, isLabeling, isLoading, total, datasetStatusID]
     );
 
-    const decorationContent = (col) => {
+    const decorationContent = col => {
       const column = col.original;
 
       if (column.icon) {
-        return <Tooltip title={column.help ?? col.title}>{column.icon}</Tooltip>;
+        return (
+          <Tooltip title={column.help ?? col.title}>{column.icon}</Tooltip>
+        );
       }
 
       return column.title;
@@ -247,10 +279,10 @@ export const DataView = injector(
       (alias, size, align = "flex-start", help = false) => ({
         alias,
         content: decorationContent,
-        style: (col) => ({ width: col.width ?? size, justifyContent: align }),
-        help,
+        style: col => ({ width: col.width ?? size, justifyContent: align }),
+        help
       }),
-      [],
+      []
     );
 
     const decoration = useMemo(
@@ -263,31 +295,38 @@ export const DataView = injector(
         commonDecoration("reviews_rejected", 60, "center"),
         commonDecoration("ground_truth", 60, "center"),
         isFF(FF_DEV_2536) && commonDecoration("comment_count", 60, "center"),
-        isFF(FF_DEV_2536) && commonDecoration("unresolved_comment_count", 60, "center"),
+        isFF(FF_DEV_2536) &&
+          commonDecoration("unresolved_comment_count", 60, "center"),
         {
-          resolver: (col) => col.type === "Number",
+          resolver: col => col.type === "Number",
           style(col) {
             return /id/.test(col.id) ? { width: 50 } : { width: 110 };
-          },
+          }
         },
         {
-          resolver: (col) => col.type === "Image" && col.original && getRoot(col.original)?.SDK?.type !== "DE",
-          style: { width: 150, justifyContent: "center" },
+          resolver: col =>
+            col.type === "Image" &&
+            col.original &&
+            getRoot(col.original)?.SDK?.type !== "DE",
+          style: { width: 150, justifyContent: "center" }
         },
         {
-          resolver: (col) => col.type === "Image" && col.original && getRoot(col.original)?.SDK?.type === "DE",
-          style: { width: 150 },
+          resolver: col =>
+            col.type === "Image" &&
+            col.original &&
+            getRoot(col.original)?.SDK?.type === "DE",
+          style: { width: 150 }
         },
         {
-          resolver: (col) => ["Date", "Datetime"].includes(col.type),
-          style: { width: 240 },
+          resolver: col => ["Date", "Datetime"].includes(col.type),
+          style: { width: 240 }
         },
         {
-          resolver: (col) => ["Audio", "AudioPlus"].includes(col.type),
-          style: { width: 150 },
-        },
+          resolver: col => ["Audio", "AudioPlus"].includes(col.type),
+          style: { width: 150 }
+        }
       ],
-      [commonDecoration],
+      [commonDecoration]
     );
 
     const content =
@@ -317,7 +356,7 @@ export const DataView = injector(
           onColumnResize={(col, width) => {
             col.original.setWidth(width);
           }}
-          onColumnReset={(col) => {
+          onColumnReset={col => {
             col.original.resetWidth();
           }}
         />
@@ -327,7 +366,7 @@ export const DataView = injector(
           data={data}
           fields={columns}
           loadMore={loadMore}
-          onChange={(id) => view.toggleSelected(id)}
+          onChange={id => view.toggleSelected(id)}
           hiddenFields={hiddenColumns}
           stopInteractions={isLocked}
         />
@@ -361,21 +400,28 @@ export const DataView = injector(
       const { highlighted } = dataStore;
       // don't close QuickView by Enter
 
-      if (highlighted && !highlighted.isSelected) store.startLabeling(highlighted);
+      if (highlighted && !highlighted.isSelected)
+        store.startLabeling(highlighted);
     });
 
     useEffect(() => {
-      const updateDatasetStatus = (dataset) => dataset?.status?.id && setDatasetStatusID(dataset?.status?.id);
+      const updateDatasetStatus = dataset =>
+        dataset?.status?.id && setDatasetStatusID(dataset?.status?.id);
 
       getRoot(store).SDK.on("datasetUpdated", updateDatasetStatus);
-      return () => getRoot(store).SDK.off("datasetUpdated", updateDatasetStatus);
+      return () =>
+        getRoot(store).SDK.off("datasetUpdated", updateDatasetStatus);
     }, []);
 
     // Render the UI for your table
     return (
-      <Block name="data-view-dm" className="dm-content" style={{ pointerEvents: isLocked ? "none" : "auto" }}>
+      <Block
+        name="data-view-dm"
+        className="dm-content"
+        style={{ pointerEvents: isLocked ? "none" : "auto" }}
+      >
         {renderContent(content)}
       </Block>
     );
-  },
+  }
 );
