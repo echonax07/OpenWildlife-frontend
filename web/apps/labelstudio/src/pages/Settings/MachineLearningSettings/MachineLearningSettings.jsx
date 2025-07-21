@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useState, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { Button, Spinner } from "../../../components";
 import { Description } from "../../../components/Description/Description";
-import { Form, Label, Toggle, Select, Input } from "../../../components/Form";
+import { Form, Input, Counter, Label, Toggle, Select } from "../../../components/Form";
 import { modal } from "../../../components/Modal/Modal";
 import { EmptyState } from "../../../components/EmptyState/EmptyState";
 import { IconModels } from "../../../assets/icons";
@@ -15,6 +15,7 @@ import { StartModelTraining } from "./StartModelTraining";
 import { Block, Elem } from "../../../utils/bem";
 import { ToastContext } from "@humansignal/ui";
 import "./MachineLearningSettings.scss";
+
 
 export const MachineLearningSettings = () => {
   const api = useAPI();
@@ -82,6 +83,95 @@ export const MachineLearningSettings = () => {
       }
     }
   }, [customWeightsPath])
+  
+  const renderAllModelSettings = useCallback(() => {
+    // TODO: fetch model settings by calling an API to the backend
+
+    // Load from a JSON
+    const settings = modelSettings["modelSettings"]["configurable"];
+    let settingsToRender = [];
+    for (const settingName in settings) {
+      const setting = settings[settingName];
+
+      let settingElem = null;
+      switch (setting.type) {
+        case "boolean":
+          settingElem = (
+            <Toggle
+              key={settingName}
+              name={settingName}
+              label={setting.label}
+              description={setting.description}
+            />
+          );
+          break;
+        case "dropdown":
+          settingElem = (
+            <Select
+              key={settingName}
+              name={settingName}
+              label={setting.label}
+              description={setting.description}
+              options={setting.options}
+            />
+          );
+          break;
+        case "text":
+          settingElem = (
+            <Input
+              key={settingName}
+              name={settingName}
+              label={setting.label}
+              description={setting.description}
+            />
+          );
+          break;
+        case "float":
+          settingElem = (
+            <Input
+              key={settingName}
+              type="number"
+              name={settingName}
+              label={setting.label}
+              description={setting.description}
+            />
+          );
+          break;
+        case "integer":
+          settingElem = (
+            <Counter
+              key={settingName}
+              name={settingName}
+              label={setting.label}
+              description={setting.description}
+              min={setting.min ?? Number.NEGATIVE_INFINITY}
+              max={setting.max ?? Number.POSITIVE_INFINITY}
+            />
+          );
+          break;
+        default:
+          console.warn(`Unknown setting type: ${setting.type} for setting: ${settingName}`);
+          break;
+      }
+
+      // Wrap the setting in a Form.Row
+      if (settingElem) {
+        settingsToRender.push(
+          <Form.Row key={settingName} columnCount={1}>
+            {settingElem}
+          </Form.Row>
+        );
+      }
+    }
+
+    return (
+      <div>
+        <Label text="Detailed Model Settings" large />
+        {settingsToRender}
+      </div>
+    )
+      
+  }, []);
 
   const startTrainingModal = useCallback(
     (backend) => {
@@ -214,7 +304,6 @@ export const MachineLearningSettings = () => {
               </div>
 
               <br/>
-              <br/>
 
               <Label text="Model Version Options" large />
               <div>
@@ -235,6 +324,7 @@ export const MachineLearningSettings = () => {
                 name="model_save_name"
                 />
               </div>                
+
             </Form.Row>
           )}
 

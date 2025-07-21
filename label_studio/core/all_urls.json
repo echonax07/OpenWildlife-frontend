@@ -986,7 +986,12 @@
     {
         "url": "/api/ml/<int:pk>/custom-weights-path",
         "module": "ml.api.MLCustomWeightsPathAPI",
-        "name": "ml:api:ml-custom-weights-path",
+        "name": "ml:api:ml-custom-weights-path"
+    },
+    {
+        "url": "/api/ml/<int:pk>/extra-params",
+        "module": "ml.api.MLExtraParamsAPI",
+        "name": "ml:api:ml-extra-params",
         "decorators": ""
     },
     {

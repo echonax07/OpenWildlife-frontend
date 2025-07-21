@@ -483,6 +483,23 @@ class MLBackend(models.Model):
         if not isinstance(self.project, Project):
             project = Project.objects.get(pk=project)
         return api.set_custom_weights_path(self.project, custom_weights_path)
+    
+    @staticmethod
+    def get_extra_params_(url, project, auth_method, **kwargs):
+        api = MLApi(url=url, auth_method=auth_method, **kwargs)
+        if not isinstance(project, Project):
+            project = Project.objects.get(pk=project)
+        return api.get_extra_params(project)
+    
+    def get_extra_params(self):
+        return self.get_extra_params_(
+            self.url,
+            self.project,
+            self.auth_method,
+            basic_auth_user=self.basic_auth_user,
+            basic_auth_pass=self.basic_auth_pass,
+        )
+
 
 class MLBackendPredictionJob(models.Model):
 
