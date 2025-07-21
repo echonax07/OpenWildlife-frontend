@@ -557,3 +557,48 @@ class MLBackendVersionsAPI(generics.RetrieveAPIView):
             result = {'error': str(versions_response.error_message)}
             status_code = versions_response.status_code if versions_response.status_code > 0 else 500
             return Response(data=result, status=status_code)
+
+@method_decorator(
+    name='post',
+    decorator=swagger_auto_schema(
+        tags=['Machine Learning'],
+        x_fern_sdk_group_name='ml',
+        x_fern_sdk_method_name='custom_weights_path',
+        x_fern_audiences=['public'],
+        operation_summary='Set a custom path on the backend for model weights',
+        operation_description='Set a custom path on the backend for model weights.',
+        responses={'200': 'Successfully set model checkpoint path.'},
+    ),
+)
+class MLCustomWeightsPathAPI(generics.RetrieveAPIView):
+    """
+    Change the current ML backend checkpoint to point to a custom weights path.
+    """
+
+    permission_required = all_permissions.projects_change
+
+    def post(self, request, *args, **kwargs):
+        ml_backend = generics.get_object_or_404(MLBackend, pk=self.kwargs['pk'])
+        self.check_object_permissions(self.request, ml_backend)
+
+        custom_weights_path = request.data.get('custom_weights_path')
+        if not custom_weights_path:
+            return Response({'detail': 'Got an empty weights path.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        response = ml_backend.set_custom_weights_path(custom_weights_path)
+
+        if response.status_code == 200:
+            return Response(
+                data={'detail': 'Custom weights path set successfully.'},
+                status=status.HTTP_200_OK,
+            )
+        elif response.status_code == 400:
+            return Response(
+                data={'detail': "The provided path doesn't exist on the backend."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            return Response(
+                data={'detail': "Internal server error occurred while setting custom weights path."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

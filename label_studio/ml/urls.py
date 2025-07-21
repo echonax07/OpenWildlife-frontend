@@ -21,6 +21,7 @@ _api_urlpatterns = [
         name='ml-interactive-annotating',
     ),
     path('<int:pk>/versions', api.MLBackendVersionsAPI.as_view(), name='ml-versions'),
+    path('<int:pk>/custom-weights-path', api.MLCustomWeightsPathAPI.as_view(), name='ml-custom-weights-path'),
 ]
 
 urlpatterns = [

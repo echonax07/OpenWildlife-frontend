@@ -227,6 +227,22 @@ class Project(ProjectMixin, models.Model):
         "{'my_bbox': {'type': 'RectangleLabels', 'labels': {'Car': 1.0, 'Airplaine': 0.5}, 'overall': 0.33}",
     )
 
+    model_save_name = models.TextField(
+        _('model save name'),
+        blank=True,
+        null=True,
+        default='',
+        help_text='Custom name for the current model version/checkpoint. It will be used to save the model',
+    )
+
+    custom_weights_path = models.TextField(
+        _('custom weights path'),
+        blank=True,
+        null=True,
+        default='',
+        help_text='Path on the ML backend server pointing to a custom set of weights to use.'
+    )
+
     # Welcome reader! You might be wondering how `model_version` is
     # set and used; let's explain. `model_version` can either be set
     # to the prediction `model_version` associated with the

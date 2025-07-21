@@ -476,7 +476,13 @@ class MLBackend(models.Model):
             basic_auth_user=self.basic_auth_user,
             basic_auth_pass=self.basic_auth_pass,
         )
-
+    
+    def set_custom_weights_path(self, custom_weights_path):
+        project = self.project
+        api = MLApi(url=self.url, auth_method=self.auth_method, project=self.project, basic_auth_user=self.basic_auth_user, basic_auth_pass=self.basic_auth_pass)
+        if not isinstance(self.project, Project):
+            project = Project.objects.get(pk=project)
+        return api.set_custom_weights_path(self.project, custom_weights_path)
 
 class MLBackendPredictionJob(models.Model):
 

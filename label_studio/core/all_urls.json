@@ -984,6 +984,12 @@
         "decorators": ""
     },
     {
+        "url": "/api/ml/<int:pk>/custom-weights-path",
+        "module": "ml.api.MLCustomWeightsPathAPI",
+        "name": "ml:api:ml-custom-weights-path",
+        "decorators": ""
+    },
+    {
         "url": "/api/webhooks/",
         "module": "webhooks.api.WebhookListAPI",
         "name": "webhooks:api:webhook-list",
