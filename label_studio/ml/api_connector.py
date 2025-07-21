@@ -310,6 +310,17 @@ class MLApi(BaseHTTPAPI):
         return self._request(
             VERSIONS_URL, request={'project': self._create_project_uid(project)}, timeout=TIMEOUT_SETUP, method='GET'
         )
+    
+    def get_extra_params(self, project):
+        """
+        Get extra parameters for the ML backend
+        """
+        return self._request(
+            'extra-params',
+            request={'project': self._create_project_uid(project)},
+            timeout=TIMEOUT_SETUP,
+            method='GET',
+        )
 
     def set_custom_weights_path(self, project, custom_weights_path):
         return self._request(

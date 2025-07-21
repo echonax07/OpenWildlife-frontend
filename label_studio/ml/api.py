@@ -602,3 +602,31 @@ class MLCustomWeightsPathAPI(generics.RetrieveAPIView):
                 data={'detail': "Internal server error occurred while setting custom weights path."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+@method_decorator(
+    name='get',
+    decorator=swagger_auto_schema(
+        tags=['Machine Learning'],
+        x_fern_sdk_group_name='ml',
+        x_fern_sdk_method_name='list_model_extra_params',
+        x_fern_audiences=['public'],
+        operation_summary='Get all extra parameters associatd with training & testing the model',
+        operation_description='Get all extra parameters associatd with training & testing the model.',
+        responses={'200': 'JSON of the parameters needed for the model, as well as types, names, etc.'},
+    ),
+)
+class MLBackendExtraParamsAPI(generics.RetrieveAPIView):
+
+    permission_required = all_permissions.projects_change
+
+    def get(self, request, *args, **kwargs):
+        ml_backend = generics.get_object_or_404(MLBackend, pk=self.kwargs['pk'])
+        self.check_object_permissions(self.request, ml_backend)
+        response = ml_backend.get_extra_params()
+        if response.status_code == 200:
+            result = {"extra_params": response.response.get('extra_params', {})}
+            return Response(data=result, status=200)
+        else:
+            result = {'error': str(response.error_message)}
+            status_code = response.status_code if response.status_code > 0 else 500
+            return Response(data=result, status=status_code)
