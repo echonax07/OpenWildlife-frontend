@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useState, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { Button, Spinner } from "../../../components";
 import { Description } from "../../../components/Description/Description";
-import { Form, Label, Toggle, Select } from "../../../components/Form";
+import { Form, Label, Toggle, Select, Input } from "../../../components/Form";
 import { modal } from "../../../components/Modal/Modal";
 import { EmptyState } from "../../../components/EmptyState/EmptyState";
 import { IconModels } from "../../../assets/icons";
@@ -13,16 +13,20 @@ import { CustomBackendForm } from "./Forms";
 import { TestRequest } from "./TestRequest";
 import { StartModelTraining } from "./StartModelTraining";
 import { Block, Elem } from "../../../utils/bem";
+import { ToastContext } from "@humansignal/ui";
 import "./MachineLearningSettings.scss";
 
 export const MachineLearningSettings = () => {
   const api = useAPI();
+  const toast = useContext(ToastContext);
   const { project, fetchProject } = useContext(ProjectContext);
   const [backends, setBackends] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [versions, setVersions] = useState([]);
+  const [customWeightsPath, setCustomWeightsPath] = useState("");
 
+  
   const fetchBackends = useCallback(async () => {
     setLoading(true);
     const models = await api.callApi("mlBackends", {
@@ -59,6 +63,25 @@ export const MachineLearningSettings = () => {
       setLoaded(true);
     }
   }, [backends, setVersions])
+
+  const useCustomWeightsPath = useCallback(async () => {
+    if (customWeightsPath) {
+      const pk = backends.length > 0 ? backends[0].id : null;
+      const response = await api.callApi("setCustomWeightsPath", {
+        params: {
+          pk,
+        },
+        body: {
+          custom_weights_path: customWeightsPath,
+        },
+      });
+      if (!response) {
+        toast.show({ message: "There was an error setting the custom weights path", type: "error" });
+      } else {
+        toast.show({ message: "The model is now using your provided weights path", type: "success" });
+      }
+    }
+  }, [customWeightsPath])
 
   const startTrainingModal = useCallback(
     (backend) => {
@@ -193,6 +216,7 @@ export const MachineLearningSettings = () => {
               <br/>
               <br/>
 
+              <Label text="Model Version Options" large />
               <div>
               <Select
                 label="Select model version"
@@ -201,8 +225,16 @@ export const MachineLearningSettings = () => {
                 onClick={fetchVersions}
                 name="model_version"
                 />
-
               </div>
+              
+              <div>
+              <Input
+                label="Save model version"
+                labelProps={{description: "Save the current model version with a custom name. It will permanently appear in the list of versions and the checkpoints will remain saved in the backend."}}
+                placeholder="Enter a custom name for this checkpoint"
+                name="model_save_name"
+                />
+              </div>                
             </Form.Row>
           )}
 
@@ -217,6 +249,29 @@ export const MachineLearningSettings = () => {
             </Form.Actions>
           )}
         </Form>
+
+        <br/>
+        <br/>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Input
+            label="Specify a weights path"
+            labelProps={{description: "Specify a path on the ML backend server pointing to a custom set of weights to use."}}
+            placeholder="Enter a path to the weights"
+            name="custom_weights_path"
+            style={{ flex: 1, marginRight: 16 }}
+            value={customWeightsPath}
+            onChange={e => setCustomWeightsPath(e.target.value)}
+          />
+          <Button
+            look="primary"
+            style={{ width: 120, marginTop: 10 }}
+            onClick={() => {
+              useCustomWeightsPath();
+            }}
+          >
+            Submit
+          </Button>
+        </div>
       </Elem>
     </Block>
   );

@@ -124,6 +124,8 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             'maximum_annotations',
             'is_published',
             'model_version',
+            'model_save_name',
+            'custom_weights_path',
             'is_draft',
             'created_by',
             'created_at',
@@ -174,12 +176,12 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             # that model_version should either match live ml backend
             # or match version in predictions
 
-            if p.ml_backends.filter(title=value).union(p.predictions.filter(project=p, model_version=value)).exists():
-                return value
-            else:
-                raise serializers.ValidationError(
-                    "Model version doesn't exist either as live model or as static predictions."
-                )
+            # if p.ml_backends.filter(title=value).union(p.predictions.filter(project=p, model_version=value)).exists():
+            return value
+            # else:
+            #     raise serializers.ValidationError(
+            #         "Model version doesn't exist either as live model or as static predictions."
+            #     )
 
         return value
 

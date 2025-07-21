@@ -43,6 +43,7 @@ DUPLICATE_URL = 'duplicate_model'
 DELETE_URL = 'delete'
 JOB_STATUS_URL = 'job_status'
 VERSIONS_URL = 'versions'
+CUSTOM_WEIGHTS_URL = 'custom_weights_path'
 
 
 class BaseHTTPAPI(object):
@@ -308,6 +309,13 @@ class MLApi(BaseHTTPAPI):
     def get_versions(self, project):
         return self._request(
             VERSIONS_URL, request={'project': self._create_project_uid(project)}, timeout=TIMEOUT_SETUP, method='GET'
+        )
+
+    def set_custom_weights_path(self, project, custom_weights_path):
+        return self._request(
+            CUSTOM_WEIGHTS_URL, request={'project': self._create_project_uid(project), 'custom_weights_path': custom_weights_path},
+            timeout=TIMEOUT_SETUP,
+            method='POST'
         )
 
 
