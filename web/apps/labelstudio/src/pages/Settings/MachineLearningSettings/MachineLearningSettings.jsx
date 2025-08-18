@@ -293,18 +293,6 @@ export const MachineLearningSettings = () => {
         >
           {backends.length > 0 && (
             <Form.Row columnCount={1}>
-              <Label text="Configuration" large />
-
-              <div>
-                <Toggle
-                  label="Start model training on annotation submission"
-                  description="This option will send a request to /train with information about annotations. You can use this to enable an Active Learning loop. You can also manually start training through model menu in its card."
-                  name="start_training_on_annotation_update"
-                />
-              </div>
-
-              <br/>
-
               <Label text="Model Version Options" large />
               <div>
               <Select
