@@ -114,8 +114,8 @@ export const DataManagerPage = ({ ...props }) => {
       api.handleError(response);
     });
 
-    dataManager.on("toast", ({ message, type }) => {
-      toast.show({ message, type });
+    dataManager.on("toast", ({ message, type, duration }) => {
+      toast.show({ message, type, duration });
     });
 
     dataManager.on("navigate", (route) => {

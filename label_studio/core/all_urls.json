@@ -978,6 +978,12 @@
         "decorators": ""
     },
     {
+        "url": "/api/ml/<str:job_id>/job_status",
+        "module": "ml.api.MLBackendJobStatusAPI",
+        "name": "ml:api:ml-job-status",
+        "decorators": ""
+    },
+    {
         "url": "/api/ml/<int:pk>/versions",
         "module": "ml.api.MLBackendVersionsAPI",
         "name": "ml:api:ml-versions",

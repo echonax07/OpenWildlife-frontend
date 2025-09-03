@@ -20,6 +20,7 @@ _api_urlpatterns = [
         api.MLBackendInteractiveAnnotating.as_view(),
         name='ml-interactive-annotating',
     ),
+    path('<str:job_id>/job_status', api.MLBackendJobStatusAPI.as_view(), name='ml-job-status'),
     path('<int:pk>/versions', api.MLBackendVersionsAPI.as_view(), name='ml-versions'),
     path('<int:pk>/custom-weights-path', api.MLCustomWeightsPathAPI.as_view(), name='ml-custom-weights-path'),
     path('<int:pk>/extra-params', api.MLBackendExtraParamsAPI.as_view(), name='ml-extra-params'),
