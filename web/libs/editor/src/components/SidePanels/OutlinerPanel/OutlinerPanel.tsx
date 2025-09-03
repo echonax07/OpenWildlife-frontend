@@ -42,7 +42,7 @@ const OutlinerPanelComponent: FC<OutlinerPanelProps> = ({ store, regions, ...pro
       setConfidenceThreshold(value);
       // Value comes in as a number between 0 and 100. Convert it to a decimal.
       value = value/100;
-      store.settings.confidenceThreshold = value; // This is later used during submission to create an alert message.
+      store.settings.setProperty("confidenceThreshold", value); // This is later used during submission to create an alert message.
       for (const region of regions.regions) {
         // For prediction-changed or user generated regions, we never hide them based on confidence.
         if (region.origin == "prediction") {
@@ -110,7 +110,7 @@ const OutlinerStandAlone: FC<OutlinerPanelProps> = ({ store, regions }) => {
       setConfidenceThreshold(value);
       // Value comes in as a number between 0 and 100. Convert it to a decimal.
       value = value/100;
-      store.settings.confidenceThreshold = value; // This is later used during submission to create an alert message.
+      store.settings.setProperty("confidenceThreshold", value); // This is later used during submission to create an alert message.
       for (const region of regions.regions) {
         // For prediction-changed or user generated regions, we never hide them based on confidence.
         if (region.origin == "prediction") {
