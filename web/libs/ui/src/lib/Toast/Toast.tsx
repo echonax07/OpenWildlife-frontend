@@ -3,6 +3,7 @@ import * as ToastPrimitive from "@radix-ui/react-toast";
 import styles from "./Toast.module.scss";
 import clsx from "clsx";
 import { IconCross } from "../../assets/icons";
+import { nanoid } from "nanoid";
 
 export type ToastViewportProps = ToastPrimitive.ToastViewportProps & any;
 export interface ToastProps extends Omit<ToastPrimitive.ToastProps, "type"> {
@@ -18,6 +19,7 @@ export enum ToastType {
   info = "info",
   error = "error",
   alertError = "alertError",
+  success = "success",
 }
 interface ToastProviderWithTypes extends ToastPrimitive.ToastProviderProps {
   type: ToastType;
@@ -55,6 +57,7 @@ export const Toast: FC<ToastProps> = ({
           [styles.toast_info]: type === ToastType.info,
           [styles.toast_error]: type === ToastType.error,
           [styles.toast_alertError]: type === ToastType.alertError,
+          [styles.toast_success]: type === ToastType.success,
         })}
       >
         {title && (
@@ -91,6 +94,7 @@ export const ToastAction: FC<ToastActionProps> = ({ children, onClose, altText, 
   </ToastPrimitive.Action>
 );
 export type ToastShowArgs = {
+  id?: string;
   message: string | ReactNode | JSX.Element;
   type?: ToastType;
   duration?: number; // -1 for no auto close
@@ -111,35 +115,46 @@ export const useToast = () => {
 };
 
 export const ToastProvider: FC<ToastProviderWithTypes> = ({ swipeDirection = "down", children, type, ...props }) => {
-  const [toastMessage, setToastMessage] = useState<ToastShowArgs | null>();
+  const [toasts, setToasts] = useState<ToastShowArgs[]>([]);
   const defaultDuration = 2000;
-  const duration = toastMessage?.duration ?? defaultDuration;
+  const duration = toasts[toasts.length-1]?.duration ?? defaultDuration;
   const show = ({ message, type, duration = defaultDuration }: ToastShowArgs) => {
-    setToastMessage({ message, type });
-    if (duration < 0) return;
-    setTimeout(() => setToastMessage(null), duration);
+    const id = nanoid();
+    const newToast: ToastShowArgs = { id, message, type, duration };
+    setToasts((prev) => [...prev, newToast]);
+
+    if (duration >= 0) {
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      }, duration);
+    }
   };
-  const toastType = toastMessage?.type ?? type ?? ToastType.info;
+  const toastType = toasts[toasts.length-1]?.type ?? type ?? ToastType.info;
+
   return (
     <ToastContext.Provider value={{ show }}>
       <ToastPrimitive.Provider swipeDirection={swipeDirection} duration={duration} {...props}>
-        <Toast
-          className={clsx(styles.messageToast, {
-            [styles.messageToast_info]: toastType === ToastType.info,
-            [styles.messageToast_error]: toastType === ToastType.error,
-            [styles.messageToast_alertError]: toastType === ToastType.alertError,
-          })}
-          open={!!toastMessage?.message}
-          action={
-            <ToastAction onClose={() => setToastMessage(null)} altText="x">
-              <IconCross />
-            </ToastAction>
-          }
-          type={toastType}
-          {...props}
-        >
-          {toastMessage?.message}
-        </Toast>
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            open={true}
+            onClose={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+            type={toast.type ?? ToastType.info}
+            action={
+              <ToastAction onClose={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))} altText="x">
+                <IconCross />
+              </ToastAction>
+            }
+            className={clsx(styles.messageToast, {
+              [styles.messageToast_info]: toast.type === ToastType.info,
+              [styles.messageToast_error]: toast.type === ToastType.error,
+              [styles.messageToast_alertError]: toast.type === ToastType.alertError,
+              [styles.messageToast_success]: toast.type === ToastType.success,
+            })}
+          >
+            {toast.message}
+          </Toast>
+        ))}
         {children}
       </ToastPrimitive.Provider>
     </ToastContext.Provider>

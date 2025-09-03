@@ -183,6 +183,11 @@ export const APIConfig = {
       method: "post",
     },
 
+    mlBackendTrainStatus: {
+      path: "/../ml/:job_id/job_status",
+      method: "get",
+    },
+
     /** Predict ML Backend */
     forcePredictMLBackend: {
       path: "/../ml/:pk/:task_id/force_predict",

@@ -166,6 +166,13 @@
     --text-color: var(--sand_100);
   }
 
+  &_success {
+    --border-color: var(--sand_300);
+    --background-color: var(--green_600);
+    --hover-color: var(--green_100);
+    --text-color: var(--sand_100);
+  }
+
   &_alertError {
     --text-color: var(--sand_900);
     --border-color: var(--sand_400);

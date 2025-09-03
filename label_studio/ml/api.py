@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import no_body, swagger_auto_schema
-from ml.models import MLBackend
+from ml.models import MLBackend, MLBackendTrainJob
 from ml.serializers import MLBackendSerializer, MLInteractiveAnnotatingRequest
 from projects.models import Project, Task
 from rest_framework import generics, status
@@ -302,8 +302,19 @@ class MLBackendForceTrainAPI(APIView):
         ml_backend = generics.get_object_or_404(MLBackend, pk=self.kwargs['pk'])
         self.check_object_permissions(self.request, ml_backend)
 
-        ml_backend.force_train([self.kwargs['task_id']])
-        return Response(status=status.HTTP_200_OK, data={'message': 'Training started.'})
+        response = ml_backend.force_train([self.kwargs['task_id']])
+        if response.status_code == 500:
+            return Response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                data={'detail': 'Something went wrong setting up ML backend training, check logs for more details.'},
+            )
+        elif response.status_code == 0:
+            return Response(
+                status=status.HTTP_504_GATEWAY_TIMEOUT,
+                data={'detail': 'ML backend is not responding, check logs for more details.'},
+            )
+            
+        return Response(status=status.HTTP_200_OK, data=response.response)
 
 @method_decorator(
     name='post',
@@ -526,6 +537,41 @@ class MLBackendInteractiveAnnotating(APIView):
             status=status.HTTP_200_OK,
         )
 
+@method_decorator(
+    name='get',
+    decorator=swagger_auto_schema(
+        tags=['Machine Learning'],
+        x_fern_sdk_group_name='ml',
+        x_fern_sdk_method_name='train_status',
+        x_fern_audiences=['public'],
+        operation_summary='Get the status of the training process',
+        operation_description='Get the status of the training process.',
+        responses={'200': 'Training status.'},
+    ),
+)
+class MLBackendJobStatusAPI(generics.RetrieveAPIView):
+    """
+    Get the status of the training process for a specific ML backend.
+    """
+
+    permission_required = all_permissions.tasks_view
+
+    def get(self, request, *args, **kwargs):
+        job_id = self.kwargs.get('job_id')
+        job = generics.get_object_or_404(MLBackendTrainJob, job_id=job_id)
+
+        status_response = job.get_status()
+
+        if status_response is None or status_response.status_code not in [200, 404]:
+            return Response(
+                data={'detail': 'Something went wrong while checking the job status, check logs for more details.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if status_response.status_code == 404:
+            return Response(data={'detail': f"While checking job status, the job with ID {job_id} could not be found on the backend."}, status=404)
+        elif status_response.status_code == 200:
+            return Response(data=status_response.response, status=status.HTTP_200_OK)
 
 @method_decorator(
     name='get',

@@ -10,7 +10,7 @@ from django.db.models import Count, JSONField, Q
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
-from ml.api_connector import PREDICT_URL, TIMEOUT_PREDICT, MLApi
+from ml.api_connector import PREDICT_URL, TIMEOUT_PREDICT, MLApi, get_ml_api
 from projects.models import Project
 from tasks.serializers import PredictionSerializer, TaskSimpleSerializer
 from webhooks.serializers import Webhook, WebhookSerializer
@@ -234,13 +234,19 @@ class MLBackend(models.Model):
     
     def force_train(self, task_ids):
         train_response = self.api.force_train(self.project, task_ids)
+        current_train_job = None
         if train_response.is_error:
             logger.info(f'Force train failed for project {self}: {train_response.error_message}')
             self.error_message = train_response.error_message
         else:
             self.state = MLBackendState.TRAINING
+            current_train_job = train_response.response.get('job')
+            if current_train_job:
+                MLBackendTrainJob.objects.create(job_id=current_train_job, ml_backend=self)
         
         self.save()
+
+        return train_response
 
     def _predict(self, task):
         """This is low level prediction method that is used for debugging"""
@@ -461,6 +467,16 @@ class MLBackend(models.Model):
         result['data'] = ml_results[0]
         return result
 
+    def get_train_status(self):
+        project = self.project
+        if not isinstance(project, Project):
+            project = Project.objects.get(pk=project)
+        api = MLApi(url=self.url,
+                    auth_method=self.auth_method,
+                    basic_auth_user=self.basic_auth_user,
+                    basic_auth_pass=self.basic_auth_pass)
+        return api.get_train_status(project)
+
     @staticmethod
     def get_versions_(url, project, auth_method, **kwargs):
         api = MLApi(url=url, auth_method=auth_method, **kwargs)
@@ -531,7 +547,7 @@ class MLBackendTrainJob(models.Model):
 
     def get_status(self):
         project = self.ml_backend.project
-        ml_api = project.get_ml_api()
+        ml_api = get_ml_api(project)
         if not ml_api:
             logger.error(
                 f"Training job {self.id}: Can't collect training jobs for project {project.id}: ML API is null"
@@ -539,14 +555,11 @@ class MLBackendTrainJob(models.Model):
             return None
         ml_api_result = ml_api.get_train_job_status(self)
         if ml_api_result.is_error:
-            if ml_api_result.status_code == 410:
-                return {'job_status': 'removed'}
             logger.info(
                 f"Training job {self.id}: Can't collect training jobs for project {project}: "
                 f'ML API returns error {ml_api_result.error_message}'
             )
-            return None
-        return ml_api_result.response
+        return ml_api_result
 
     @property
     def is_running(self):

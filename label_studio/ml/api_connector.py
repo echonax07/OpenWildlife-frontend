@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 CONNECTION_TIMEOUT = float(get_env('ML_CONNECTION_TIMEOUT', 1))  # seconds
 TIMEOUT_DEFAULT = float(get_env('ML_TIMEOUT_DEFAULT', 100))  # seconds
 
-TIMEOUT_TRAIN = float(get_env('ML_TIMEOUT_TRAIN', 1000))
+TIMEOUT_TRAIN = float(get_env('ML_TIMEOUT_TRAIN', 15))
 TIMEOUT_PREDICT = float(get_env('ML_TIMEOUT_PREDICT', 100))
 TIMEOUT_HEALTH = float(get_env('ML_TIMEOUT_HEALTH', 1))
 TIMEOUT_SETUP = float(get_env('ML_TIMEOUT_SETUP', 3))
@@ -42,6 +42,7 @@ SETUP_URL = 'setup'
 DUPLICATE_URL = 'duplicate_model'
 DELETE_URL = 'delete'
 JOB_STATUS_URL = 'job_status'
+TRAIN_STATUS_URL = 'train_status'
 VERSIONS_URL = 'versions'
 CUSTOM_WEIGHTS_URL = 'custom_weights_path'
 
@@ -304,7 +305,7 @@ class MLApi(BaseHTTPAPI):
         )
 
     def get_train_job_status(self, train_job):
-        return self._request(JOB_STATUS_URL, request={'job': train_job.job_id}, timeout=TIMEOUT_TRAIN_JOB_STATUS)
+        return self._request(JOB_STATUS_URL, request={'job_id': train_job.job_id}, timeout=TIMEOUT_TRAIN_JOB_STATUS, method='GET')
 
     def get_versions(self, project):
         return self._request(
@@ -331,11 +332,16 @@ class MLApi(BaseHTTPAPI):
 
 
 def get_ml_api(project):
-    if project.ml_backend_active_connection is None:
+    # FIXME: Get project.get_active_ml_backends() seems to be empty even when backend is connected.
+    # Figure out the reason and replace this call.
+    active_backends = project.get_ml_backends()
+    if not active_backends.exists():
         return None
-    if project.ml_backend_active_connection.ml_backend is None:
+    if active_backends.first() is None:
         return None
+    
+    ml_backend = active_backends.first()
     return MLApi(
-        url=project.ml_backend_active_connection.ml_backend.url,
-        timeout=project.ml_backend_active_connection.ml_backend.timeout,
+        url=ml_backend.url,
+        timeout=ml_backend.timeout,
     )

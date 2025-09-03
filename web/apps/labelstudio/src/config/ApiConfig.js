@@ -59,6 +59,7 @@ export const API_CONFIG = {
     setCustomWeightsPath: "POST:/ml/:pk/custom-weights-path",
     modelExtraParams: "GET:/ml/:pk/extra-params",
     mlInteractive: "POST:/ml/:pk/interactive-annotating",
+    mlBackendTrainStatus: "GET:/ml/:job_id/job_status",
 
     // Export
     export: "/projects/:pk/export",
