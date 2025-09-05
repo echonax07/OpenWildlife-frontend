@@ -97,6 +97,7 @@ const Model = types
     editableFields: [
       { property: "x", label: "X" },
       { property: "y", label: "Y" },
+      { property: "score", label: "Conf", isEditableOverride: true}
     ],
   }))
   .views((self) => ({

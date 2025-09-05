@@ -75,6 +75,7 @@ const RegionProperties = ({ region }: RegionEditorProps) => {
               key={`${field.property}-${i}`}
               property={field.property}
               label={field.label}
+              isEditableOverride={field.isEditableOverride ?? false}
               region={region}
             />
           );
@@ -113,9 +114,10 @@ interface RegionPropertyProps {
   property: string;
   label: string;
   region: MSTRegion;
+  isEditableOverride?: boolean;
 }
 
-const RegionProperty: FC<RegionPropertyProps> = ({ property, label, region }) => {
+const RegionProperty: FC<RegionPropertyProps> = ({ property, label, region, isEditableOverride }) => {
   const block = useBEM();
   const [value, setValue] = useState(region.getProperty(property));
 
@@ -175,7 +177,14 @@ const RegionProperty: FC<RegionPropertyProps> = ({ property, label, region }) =>
 
   return (
     <Elem name="property" tag="label">
-      {isBoolean ? (
+      {isEditableOverride ? (
+        <input
+          type="text"
+          className={block?.elem("input").toClassName()}
+          readOnly={true}
+          value={typeof value === 'number' && !Number.isInteger(value) ? Number(value).toFixed(3) : value}
+        />
+      ) : isBoolean ? (
         <Checkbox
           className={block?.elem("input").toClassName()}
           checked={value}
