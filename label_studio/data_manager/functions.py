@@ -343,6 +343,21 @@ def evaluate_predictions(tasks):
     if backend:
         return backend.predict_tasks(tasks=tasks)
 
+def train_on_tasks(tasks):
+    """
+    Call the given ML backend to train on the provided tasks.
+    """
+
+    if not tasks:
+        return None
+    
+    project = tasks[0].project
+    backend = project.ml_backend
+
+    if backend:
+        task_ids = [task.id for task in tasks]
+        print("Passing in task ids to backend for training:", task_ids)
+        return backend.force_train(task_ids)
 
 def filters_ordering_selected_items_exist(data):
     return data.get('filters') or data.get('ordering') or data.get('selectedItems')

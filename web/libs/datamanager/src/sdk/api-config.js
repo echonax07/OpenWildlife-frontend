@@ -183,7 +183,7 @@ export const APIConfig = {
       method: "post",
     },
 
-    mlBackendTrainStatus: {
+    mlBackendJobStatus: {
       path: "/../ml/:job_id/job_status",
       method: "get",
     },

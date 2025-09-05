@@ -1,5 +1,5 @@
 import { inject, observer } from "mobx-react";
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { FaAngleDown, FaChevronDown, FaChevronRight, FaChevronUp, FaTrash } from "react-icons/fa";
 import { Block, Elem } from "../../../utils/bem";
 import { FF_LOPS_E_10, FF_LOPS_E_3, isFF } from "../../../utils/feature-flags";
@@ -8,6 +8,7 @@ import { Dropdown } from "../../Common/Dropdown/DropdownComponent";
 import Form from "../../Common/Form/Form";
 import { Menu } from "../../Common/Menu/Menu";
 import { Modal } from "../../Common/Modal/ModalPopup";
+import StatusChecker from "../../../utils/StatusChecker";
 import "./ActionsButton.scss";
 
 const isFFLOPSE3 = isFF(FF_LOPS_E_3);
@@ -57,6 +58,35 @@ export const ActionsButton = injector(
       }
     };
 
+    const promiseInvokeAction = (action, destructive) => {
+      return new Promise((resolve, reject) => {
+      if (action.dialog) {
+        const { type: dialogType, text, form, title } = action.dialog;
+        const dialog = Modal[dialogType] ?? Modal.confirm;
+
+        dialog({
+        title: title ? title : destructive ? "Destructive action" : "Confirm action",
+        body: buildDialogContent(text, form, formRef),
+        buttonLook: destructive ? "destructive" : "primary",
+        async onOk() {
+          try {
+          const body = formRef.current?.assembleFormData({ asJSON: true });
+          const result = await store.invokeAction(action.id, { body });
+          resolve(result);
+          } catch (err) {
+          reject(err);
+          }
+        },
+        onCancel() {
+          reject(new Error("Action cancelled"));
+        },
+        });
+      } else {
+        Promise.resolve(store.invokeAction(action.id)).then(resolve, reject);
+      }
+      });
+    };
+
     const ActionButton = (action, parentRef) => {
       const isDeleteAction = action.id.includes("delete");
       const hasChildren = !!action.children?.length;
@@ -65,9 +95,49 @@ export const ActionsButton = injector(
         (e) => {
           e.preventDefault();
           if (action.disabled) return;
+
+          if (action.title === "Train on Submitted Tasks") {
+            const toast = window.globalToast;
+
+            promiseInvokeAction(action, isDeleteAction)
+              .then((result) => {
+                if (result?.$meta?.status === 200) {
+                  toast.show({
+                    message: "Training started successfully.",
+                    type: "info",
+                    duration: 5000,
+                  });
+                  let job_id = result.detail.job;
+                  const menuHeader = document.querySelector('.lsf-menu-header');
+                  if (menuHeader) {
+                    const statusCheckerDiv = document.createElement("div");
+                    statusCheckerDiv.className = "custom-div";
+                    menuHeader.appendChild(statusCheckerDiv);
+                    import("react-dom").then(({ render }) => {
+                      render(React.createElement(StatusChecker, { job_id }), statusCheckerDiv);
+                    });
+                  }
+                } else {
+                  toast.show({
+                    message: "There was an error starting training.",
+                    type: "error",
+                    duration: 5000,
+                  });
+                }
+              })
+              .catch((error) => {
+                console.error("Error invoking action:", error);
+                toast.show({
+                  message: "There was an error starting training.",
+                  type: "error",
+                  duration: 5000,
+                });
+              });
+          } else {
           action?.callback
             ? action?.callback(store.currentView?.selected?.snapshot, action)
             : invokeAction(action, isDeleteAction);
+          }
           parentRef?.current?.close?.();
         },
         [store.currentView?.selected],
