@@ -66,6 +66,8 @@ const SettingsModel = types
     videoHopSize: types.optional(types.number, 10),
 
     isDestroying: types.optional(types.boolean, false),
+
+    confidenceThreshold: types.optional(types.number, 0.0),
   })
   .views((self) => ({
     get annotation() {

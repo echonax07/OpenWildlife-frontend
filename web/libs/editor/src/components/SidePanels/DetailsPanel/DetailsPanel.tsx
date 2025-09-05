@@ -191,29 +191,31 @@ const AnnotationStatisticsPanel: FC<any> = inject("store")(
 
       return regions;
     }
-    return (
-      (() => {
-        const allRegions = getAllRegions();
-        const regionCounts = allRegions.reduce((acc: Record<string, number>, region: any) => {
-          acc[region.labelName] = (acc[region.labelName] || 0) + 1;
-          return acc;
-        }, {});
-        const totalCount = regionCounts["undefined"] ? (allRegions.length - regionCounts["undefined"]) : allRegions.length;
 
-        return (
-          <Elem name="section-content">
-            <div style={{ paddingLeft: "16px" }}>
-              {Object.entries(regionCounts).map(([name, count]) => (
-              <div key={name}>
-                <strong>{name}:</strong> {count}
-              </div>
-              ))}
-              <div><strong>Total Valid Annotations:</strong> {totalCount}</div>
-            </div>
-          </Elem>
-        );
-      })()
-    )
+    const confidenceThreshold = store.settings.confidenceThreshold;
+    const allRegions = getAllRegions();
+    const regionCounts = allRegions.reduce((acc: Record<string, number>, region: any) => {
+      acc[region.labelName] = (acc[region.labelName] || 0) + 1;
+      if (confidenceThreshold && region.score && region.score < confidenceThreshold) {
+        console.log("Reducing count for region with score:", region.score, "below threshold:", confidenceThreshold);
+        acc[region.labelName] -= 1;
+      }
+      return acc;
+    }, {});
+    const totalCount = regionCounts["undefined"] ? (allRegions.length - regionCounts["undefined"]) : allRegions.length;
+    
+    return (
+      <Elem name="section-content" key={`stats-${confidenceThreshold}`}>
+        <div style={{ paddingLeft: "16px" }}>
+          {Object.entries(regionCounts).map(([name, count]) => (
+          <div key={name}>
+            <strong>{name}:</strong> {count}
+          </div>
+          ))}
+          <div><strong>Total Valid Annotations:</strong> {totalCount}</div>
+        </div>
+      </Elem>
+    );
   })
 );
 
