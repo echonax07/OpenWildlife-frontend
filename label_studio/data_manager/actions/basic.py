@@ -6,7 +6,7 @@ from datetime import datetime
 from core.permissions import AllPermissions
 from core.redis import start_job_async_or_sync
 from core.utils.common import load_func
-from data_manager.functions import evaluate_predictions
+from data_manager.functions import evaluate_predictions, train_on_tasks
 from django.conf import settings
 from projects.models import Project
 from tasks.functions import update_tasks_counters
@@ -26,6 +26,35 @@ def retrieve_tasks_predictions(project, queryset, **kwargs):
     """
     evaluate_predictions(queryset)
     return {'processed_items': queryset.count(), 'detail': 'Retrieved ' + str(queryset.count()) + ' predictions'}
+
+def train_on_submitted_tasks(project, queryset, **kwargs):
+    """Train on all submitted tasks in the project
+    :param project: project instance
+    :param queryset: filtered tasks db queryset (not used in this function)
+    """
+
+    # Uncomment below to use ALL submitted tasks instead of only the checked tasks
+    # tasks = Task.objects.filter(is_labeled=True, project=project)
+    tasks = queryset.filter(is_labeled=True, project=project)
+    print("TRAINING ON SUBMITTED TASKS", tasks)
+    response = train_on_tasks(tasks)
+    if response is None:
+        return {'response_code': 500, 'detail': 'No submitted tasks found for training.'}
+    elif response.status_code == 500:
+        return {
+            'response_code': 500,
+            'detail': 'Something went wrong setting up ML backend training, check logs for more details.'
+        }
+    elif response.status_code == 0:
+        return {
+            'response_code': 500,
+            'detail': 'ML backend is not responding, check logs for more details.',
+        }
+
+    return {
+        'response_code': response.status_code,
+        'detail': response.response
+    }
 
 
 def delete_tasks(project, queryset, **kwargs):
@@ -145,6 +174,16 @@ actions = [
             'Please confirm your action.',
             'type': 'confirm',
         },
+    },
+    {
+        "entry_point": train_on_submitted_tasks,
+        "permission": all_permissions.projects_change,
+        "title": "Train on Submitted Tasks",
+        "order": 100,
+        "dialog": {
+            "text": "You are going to train the model on all submitted tasks. Please confirm your action.",
+            "type": "confirm",
+        }
     },
     {
         'entry_point': delete_tasks,

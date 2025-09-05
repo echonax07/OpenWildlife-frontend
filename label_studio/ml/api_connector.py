@@ -226,10 +226,15 @@ class MLApi(BaseHTTPAPI):
         drafts = project.drafts.filter(task__id__in=task_ids)
         drafts_ser = AnnotationDraftSerializer(drafts, many=True, default=[], read_only=True).data
         
-        # Hack: if drafts are present, replace annotations with drafts
-        # TODO: this must be updated if we ever want force_train to support multiple tasks
-        if len(drafts_ser) > 0 and len(tasks_ser) > 0:
-            tasks_ser[0]["annotations"] = [drafts_ser[0]]
+        for task in task_ids:
+            drafts = AnnotationDraft.objects.filter(task__id=task)
+            drafts_ser = AnnotationDraftSerializer(drafts, many=True, default=[], read_only=True).data
+            if len(drafts_ser) > 0:
+                # Find task in tasks_ser and add the draft to its annotations
+                for task_ser in tasks_ser:
+                    if task_ser['id'] == task:
+                        task_ser['annotations'] = drafts_ser[0]
+                        break
         
         if len(tasks_ser[0]["annotations"]) == 0:
             # If no tasks and no drafts, return empty response
