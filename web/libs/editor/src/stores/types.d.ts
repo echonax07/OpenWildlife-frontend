@@ -64,6 +64,7 @@ type MixinMSTRegionVolatile = {
 type MSTEditableRegionPropertyDefinition = {
   property: string;
   label: string;
+  isEditableOverride?: boolean;
 };
 
 type MSTEditableRegion = {
