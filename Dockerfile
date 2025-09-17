@@ -87,9 +87,14 @@ ENV PATH="$VENV_PATH/bin:$PATH"
 # Copy dependency files
 COPY pyproject.toml poetry.lock README.md ./
 
-# Bring in the local SDK clone (multi‐context alias)
-COPY --from=ls_sdk / /label-studio-sdk
+# # Bring in the local SDK clone (multi‐context alias)
+# COPY --from=ls_sdk / /label-studio-sdk
+# ENV LS_DIR=/label-studio
+
+# Clone SDK directly from GitHub
+RUN git clone https://github.com/echonax07/OpenWildlife-ls-sdk.git /label-studio-sdk
 ENV LS_DIR=/label-studio
+
 # Install dependencies without dev packages
 RUN --mount=type=cache,target=$POETRY_CACHE_DIR,sharing=locked \
     poetry check --lock && poetry install --no-root --without test --extras uwsgi
@@ -170,7 +175,7 @@ COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/edit
 COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/datamanager/version.json    $LS_DIR/web/dist/libs/datamanager/version.json
 
 
-COPY --chown=1001:0 --from=venv-builder /label-studio-sdk /label-studio-sdk
+# COPY --chown=1001:0 --from=venv-builder /label-studio-sdk /label-studio-sdk
 
 USER 1001
 

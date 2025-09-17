@@ -32,7 +32,9 @@ services:
   app:
     stdin_open: true
     tty: true
-    # build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: label-studio:latest
     restart: unless-stopped
     expose:

@@ -201,10 +201,12 @@ django-csp = "3.7"
 openai = "^1.10.0"
 django-migration-linter = "^5.1.0"
 setuptools = ">=75.4.0"
+icecream = "*"
 
 # Humansignal repo dependencies
 # label-studio-sdk = "1.0.8"
-label-studio-sdk = { path = "../label-studio-sdk", develop = false }
+# label-studio-sdk = { path = "../label-studio-sdk", develop = false }
+label-studio-sdk = { git = "https://github.com/echonax07/OpenWildlife-ls-sdk.git", branch = "main" }
 [tool.poetry.group.test.dependencies]
 pytest = "7.2.2"
 pytest-cov = "2.12.1"
@@ -222,7 +224,9 @@ s3transfer = "0.7.0"
 mock = ">=5.1.0"
 moto = ">=4.2.6"
 requests-mock = "1.12.1"
-label-studio-sdk = { path = "../label-studio-sdk", develop = true }
+# label-studio-sdk = { path = "../label-studio-sdk", develop = true }
+label-studio-sdk = { git = "https://github.com/echonax07/OpenWildlife-ls-sdk.git", branch = "main" }
+
 openpyxl = "^3.1.0"
 [tool.poetry.group.build.dependencies]
 twine = ">=4.0.2"
