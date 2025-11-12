@@ -96,39 +96,48 @@ export const ActionsButton = injector(
           e.preventDefault();
           if (action.disabled) return;
 
-          if (action.title === "Train on Submitted Tasks") {
+          if (action.title === "Train on Submitted Tasks" || action.title === "Retrieve Predictions") {
+            let action_type = (action.title === "Train on Submitted Tasks") ? "training" : "prediction";
             const toast = window.globalToast;
 
             promiseInvokeAction(action, isDeleteAction)
               .then((result) => {
                 if (result?.$meta?.status === 200) {
-                  toast.show({
-                    message: "Training started successfully.",
+                    toast.show({
+                    message: `${action_type.toUpperCase()} started successfully.`,
                     type: "info",
                     duration: 5000,
-                  });
+                    });
                   let job_id = result.detail.job;
                   const menuHeader = document.querySelector('.lsf-menu-header');
                   if (menuHeader) {
                     const statusCheckerDiv = document.createElement("div");
                     statusCheckerDiv.className = "custom-div";
                     menuHeader.appendChild(statusCheckerDiv);
+                    const selections = store.currentView.selected;
+                    const updatePredictions = (result) => {
+                      store.invokeAction("update_predictions", {
+                        body: {
+                          result: result
+                        }
+                      });
+                    }
                     import("react-dom").then(({ render }) => {
-                      render(React.createElement(StatusChecker, { job_id }), statusCheckerDiv);
+                      render(React.createElement(StatusChecker, { job_id, action_type, callback: updatePredictions }), statusCheckerDiv);
                     });
                   }
                 } else {
-                  toast.show({
-                    message: "There was an error starting training.",
+                    toast.show({
+                    message: `There was an error starting ${action_type}.`,
                     type: "error",
                     duration: 5000,
-                  });
+                    });
                 }
               })
               .catch((error) => {
                 console.error("Error invoking action:", error);
                 toast.show({
-                  message: "There was an error starting training.",
+                  message: `There was an error starting ${action_type}.`,
                   type: "error",
                   duration: 5000,
                 });

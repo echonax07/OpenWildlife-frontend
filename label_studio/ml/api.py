@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import no_body, swagger_auto_schema
-from ml.models import MLBackend, MLBackendTrainJob
+from ml.models import MLBackend, MLBackendTrainJob, MLBackendPredictionJob
 from ml.serializers import MLBackendSerializer, MLInteractiveAnnotatingRequest
 from projects.models import Project, Task
 from rest_framework import generics, status
@@ -430,9 +430,8 @@ class MLBackendForcePredictAPI(APIView):
         ml_backend = generics.get_object_or_404(MLBackend, pk=self.kwargs['pk'])
         self.check_object_permissions(self.request, ml_backend)
 
-        # TODO: support multiple task IDs
-        task_ids = [self.kwargs['task_id']]
-        predictions = ml_backend.predict_tasks_no_update(task_ids)
+        task_id = self.kwargs['task_id']
+        predictions = ml_backend.predict_task_no_update(task_id)
         if not predictions:
             return Response(
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -558,7 +557,10 @@ class MLBackendJobStatusAPI(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         job_id = self.kwargs.get('job_id')
-        job = generics.get_object_or_404(MLBackendTrainJob, job_id=job_id)
+        if job_id.startswith("train-"):
+            job = generics.get_object_or_404(MLBackendTrainJob, job_id=job_id)
+        else:
+            job = generics.get_object_or_404(MLBackendPredictionJob, job_id=job_id)
 
         status_response = job.get_status()
 

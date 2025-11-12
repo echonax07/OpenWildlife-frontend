@@ -8,6 +8,7 @@ from core.permissions import ViewClassPermission, all_permissions
 from core.utils.common import int_from_request, load_func
 from core.utils.params import bool_from_request
 from data_manager.actions import get_all_actions, perform_action
+from data_manager.actions.basic import update_predictions
 from data_manager.functions import evaluate_predictions, get_prepare_params, get_prepared_queryset
 from data_manager.managers import get_fields_for_evaluation
 from data_manager.models import View
@@ -503,6 +504,7 @@ class ProjectStateAPI(APIView):
                 enum=[
                     'retrieve_tasks_predictions',
                     'predictions_to_annotations',
+                    'update_predictions',
                     'remove_duplicates',
                     'delete_tasks',
                     'delete_ground_truths',
@@ -548,12 +550,18 @@ class ProjectActionsAPI(APIView):
     def post(self, request):
         pk = int_from_request(request.GET, 'project', None)
         project = generics.get_object_or_404(Project, pk=pk)
+        # wrong action id
+        action_id = request.GET.get('id', None)
+
         self.check_object_permissions(request, project)
 
         queryset = get_prepared_queryset(request, project)
 
-        # wrong action id
-        action_id = request.GET.get('id', None)
+        if action_id == 'update_predictions':
+            task_ids = [result["task"] for result in request.data.get("result", [])]
+            update_predictions(project, request.data["result"], task_ids)  
+            return Response({}, status=200)        
+
         if action_id is None:
             response = {'detail': 'No action id "' + str(action_id) + '", use ?id=<action-id>'}
             return Response(response, status=422)

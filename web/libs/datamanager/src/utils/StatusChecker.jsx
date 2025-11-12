@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { ToastType } from "@humansignal/ui";
-
-const StatusChecker = ({ job_id }) => {
+const StatusChecker = ({ job_id, action_type = "training", callback = null }) => {
   const toast = window.globalToast;
 
   const playNotificationSound = () => {
@@ -17,25 +16,29 @@ const StatusChecker = ({ job_id }) => {
     });
 
     if (!response || response.$meta.status !== 200) {
-      toast.show({ message: "There was an error checking training status", type: "error", duration: -1 });
+      toast.show({ message: `There was an error checking ${action_type} status`, type: "error", duration: -1 });
       return true;
     }
     
-    const { job_status } = response;
+    const { job_status, result } = response;
+    let action_type_upper = action_type.charAt(0).toUpperCase() + action_type.slice(1);
     if (job_status === "finished") {
-      toast.show({ message: "Training completed successfully", type: "success", duration: -1 });
+      toast.show({ message: `${action_type_upper} completed successfully`, type: "success", duration: -1 });
+      if (callback !== null) {
+        callback(result);
+      }
       return true;
     } else if (job_status === "failed") {
-      toast.show({ message: "Training failed. Please check the backend logs.", type: "error", duration: -1 });
+      toast.show({ message: `${action_type_upper} failed. Please check the backend logs.`, type: "error", duration: -1 });
       return true;
     } else if (job_status === "started") {
-      toast.show({ message: "Training is in progress...", type: "info", duration: 2500 });
+      toast.show({ message: `${action_type_upper} is in progress...`, type: "info", duration: 2500 });
       return false;
     } else if (job_status === "queued") {
-      toast.show({ message: "Backend is busy. Training is queued...", type: "info", duration: 2500 });
+      toast.show({ message: `Backend is busy. ${action_type_upper} is queued...`, type: "info", duration: 2500 });
       return false;
     } else if (job_status === "canceled" || job_status === "stopped") {
-      toast.show({ message: "Training failed (was canceled or stopped on the backend).", type: "error", duration: -1 });
+      toast.show({ message: `${action_type_upper} failed (was canceled or stopped on the backend).`, type: "error", duration: -1 });
       return true;
     }
   };
