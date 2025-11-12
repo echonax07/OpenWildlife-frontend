@@ -334,7 +334,7 @@ def evaluate_predictions(tasks):
     ML backend, and use that backend.
     """
     if not tasks:
-        return
+        return None
 
     project = tasks[0].project
 

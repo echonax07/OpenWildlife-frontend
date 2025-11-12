@@ -355,14 +355,30 @@ class MLBackend(models.Model):
                 )
         return predictions
 
-    def predict_tasks_no_update(self, task_ids):
+    def _queue_predictions_with_ml_backend(self, serialized_tasks: List[Dict]):
+        response = self.api.queue_predictions(serialized_tasks, self.project)
+
+        if response.is_error:
+            logger.info(f'Force train failed for project {self}: {response.error_message}')
+            self.error_message = response.error_message
+        else:
+            self.state = MLBackendState.PREDICTING
+            current_train_job = response.response.get('job')
+            if current_train_job:
+                MLBackendPredictionJob.objects.create(job_id=current_train_job, ml_backend=self)
+        
+        self.save()
+
+        return response
+
+    def predict_task_no_update(self, task_id):
         model_version = self.update_state()
         if self.not_ready:
             logger.debug(f'ML backend {self} is not ready')
             return
 
         from tasks.models import Task
-        tasks = Task.objects.filter(id__in=task_ids)        
+        tasks = Task.objects.filter(id__in=[task_id])        
         tasks_ser = TaskSimpleSerializer(tasks, many=True).data
         
         if len(tasks_ser) == 0:
@@ -370,7 +386,7 @@ class MLBackend(models.Model):
                 
         # TODO: Assumes all tasks are in the same project
         project = tasks[0].project
-        drafts = project.drafts.filter(task__id__in=task_ids)
+        drafts = project.drafts.filter(task__id__in=[task_id])
 
         from tasks.serializers import AnnotationDraftSerializer
         drafts_ser = AnnotationDraftSerializer(drafts, many=True, default=[], read_only=True).data
@@ -390,7 +406,7 @@ class MLBackend(models.Model):
         predictions = self._get_predictions_from_ml_backend(tasks_ser)
         return predictions
 
-    def update_predictions(selef, predictions):
+    def update_predictions(self, predictions):
         with conditional_atomic(predicate=db_is_not_sqlite):
             prediction_ser = PredictionSerializer(data=predictions, many=True)
             prediction_ser.is_valid(raise_exception=True)
@@ -408,20 +424,9 @@ class MLBackend(models.Model):
 
             tasks = Task.objects.filter(id__in=[task.id for task in tasks])
 
-        # Filter tasks that already contain the current model version in predictions
-        tasks = tasks.annotate(predictions_count=Count('predictions')).exclude(
-            Q(predictions_count__gt=0) & Q(predictions__model_version=model_version)
-        )
-        if not tasks.exists():
-            logger.debug(f'All tasks already have prediction from model version={self.model_version}')
-            return model_version
         tasks_ser = TaskSimpleSerializer(tasks, many=True).data
-        predictions = self._get_predictions_from_ml_backend(tasks_ser)
-        with conditional_atomic(predicate=db_is_not_sqlite):
-            prediction_ser = PredictionSerializer(data=predictions, many=True)
-            prediction_ser.is_valid(raise_exception=True)
-            instances = prediction_ser.save()
-        return instances
+        response = self._queue_predictions_with_ml_backend(tasks_ser)
+        return response
 
     def interactive_annotating(self, task, context=None, user=None):
         result = {}
@@ -530,6 +535,23 @@ class MLBackendPredictionJob(models.Model):
 
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    def get_status(self):
+        project = self.ml_backend.project
+        ml_api = get_ml_api(project)
+        if not ml_api:
+            logger.error(
+                f"Prediction job {self.id}: Can't collect prediction jobs for project {project.id}: ML API is null"
+            )
+            return None
+        ml_api_result = ml_api.get_train_job_status(self)
+        if ml_api_result.is_error:
+            logger.info(
+                f"Prediction job {self.id}: Can't collect prediction jobs for project {project}: "
+                f'ML API returns error {ml_api_result.error_message}'
+            )
+        return ml_api_result
+
 
 
 class MLBackendTrainJob(models.Model):

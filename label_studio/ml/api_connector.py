@@ -27,14 +27,16 @@ TIMEOUT_DEFAULT = float(get_env('ML_TIMEOUT_DEFAULT', 100))  # seconds
 
 TIMEOUT_TRAIN = float(get_env('ML_TIMEOUT_TRAIN', 15))
 TIMEOUT_PREDICT = float(get_env('ML_TIMEOUT_PREDICT', 100))
+TIMEOUT_PREDICT_QUEUE = float(get_env('ML_TIMEOUT_PREDICT_QUEUE', 15))
 TIMEOUT_HEALTH = float(get_env('ML_TIMEOUT_HEALTH', 1))
 TIMEOUT_SETUP = float(get_env('ML_TIMEOUT_SETUP', 3))
 TIMEOUT_DUPLICATE_MODEL = float(get_env('ML_TIMEOUT_DUPLICATE_MODEL', 1))
 TIMEOUT_DELETE = float(get_env('ML_TIMEOUT_DELETE', 1))
-TIMEOUT_TRAIN_JOB_STATUS = float(get_env('ML_TIMEOUT_TRAIN_JOB_STATUS', 1))
+TIMEOUT_TRAIN_JOB_STATUS = float(get_env('ML_TIMEOUT_TRAIN_JOB_STATUS', 5))
 
 # TODO
 # we would need to make it configurable on the ML backend side too
+PREDICT_QUEUE_URL = 'queue_predict'
 PREDICT_URL = 'predict'
 HEALTH_URL = 'health'
 VALIDATE_URL = 'validate'
@@ -274,6 +276,10 @@ class MLApi(BaseHTTPAPI):
     def make_predictions(self, tasks, project, context=None):
         request = self._prep_prediction_req(tasks, project, context=context)
         return self._request(PREDICT_URL, request, verbose=False, timeout=TIMEOUT_PREDICT)
+
+    def queue_predictions(self, tasks, project, context=None):
+        request = self._prep_prediction_req(tasks, project, context=context)
+        return self._request(PREDICT_QUEUE_URL, request, verbose=False, timeout=TIMEOUT_PREDICT_QUEUE)
 
     def health(self):
         return self._request(HEALTH_URL, method='GET', timeout=TIMEOUT_HEALTH)

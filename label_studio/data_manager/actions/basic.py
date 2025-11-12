@@ -24,8 +24,20 @@ def retrieve_tasks_predictions(project, queryset, **kwargs):
     :param project: project instance
     :param queryset: filtered tasks db queryset
     """
-    evaluate_predictions(queryset)
-    return {'processed_items': queryset.count(), 'detail': 'Retrieved ' + str(queryset.count()) + ' predictions'}
+    response = evaluate_predictions(queryset)
+    if response is None:
+        return {'response_code': 500, 'detail': 'No tasks to predict on.'}
+    elif response.status_code == 500:
+        return {
+            'response_code': 500,
+            'detail': 'Something went wrong setting up ML backend prediction, check logs for more details.'
+        }
+    elif response.status_code == 0:
+        return {
+            'response_code': 500,
+            'detail': 'ML backend is not responding, check logs for more details.',
+        }
+    return {'response_code': response.status_code, 'processed_items': queryset.count(), 'detail': response.response}
 
 def train_on_submitted_tasks(project, queryset, **kwargs):
     """Train on all submitted tasks in the project
@@ -158,6 +170,29 @@ def async_project_summary_recalculation(tasks_ids_list, project_id):
     project.summary.remove_created_annotations_and_labels(Annotation.objects.filter(task__in=queryset))
     project.summary.remove_data_columns(queryset)
     Task.delete_tasks_without_signals(queryset)
+
+
+def update_predictions(project, data, task_ids):
+    backend = project.ml_backend
+
+    # Delete existing predictions and annotations
+    tasks = Task.objects.filter(id__in=task_ids)
+    for task in tasks:
+        for annotation in task.annotations.all():
+            annotation.delete()
+        for prediction in task.predictions.all():
+            prediction.delete()
+    
+    # Delete existing draft for the task
+    from tasks.models import AnnotationDraft
+    for task in tasks:
+        query_args = {'task': task}
+        drafts = AnnotationDraft.objects.filter(**query_args)
+        for draft in drafts:
+            draft.delete()
+
+    if backend:
+        backend.update_predictions(data)
 
 
 actions = [
