@@ -25,6 +25,9 @@ services:
     volumes:
       - ./mydata:/label-studio/data:rw
       - ./deploy/nginx/certs:/certs:ro
+      # USER CONFIG: Change /home/pc2041/YOUR_IMAGES_HERE to your images folder
+      # - /home/pc2041/YOUR_IMAGES_HERE:/label-studio/files:ro
+      - /media/pc2041/Elements/Eureka_2023_25mm/DSLR_25mm/20230902:/label-studio/files:ro
     #   Optional: Override nginx default conf
     #      - ./deploy/my.conf:/etc/nginx/nginx.conf
     command: nginx
@@ -53,9 +56,16 @@ services:
       - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
       # - LABEL_STUDIO_HOST=ls_nginx:8085
       - JSON_LOG=1
+      # Local file serving configuration
+      - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+      - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files
     #      - LOG_LEVEL=DEBUG
     volumes:
       - ./mydata:/label-studio/data:rw
+      # USER CONFIG: Change /home/pc2041/YOUR_IMAGES_HERE to your images folder
+      # Then in Label Studio UI, use /label-studio/files as "Absolute local path"
+      # - /home/pc2041/YOUR_IMAGES_HERE:/label-studio/files:ro
+      - /media/pc2041/Elements/Eureka_2023_25mm/DSLR_25mm/20230902:/label-studio/files:ro
     command: label-studio-uwsgi
 
   db:
