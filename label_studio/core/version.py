@@ -100,7 +100,15 @@ def get_git_commit_info(skip_os=True, ls=False):
             }
         except CalledProcessError:
             os.chdir(cwd)
-            return _read_py(ls=True)
+            info = _read_py(ls=True) or {
+                'version': VERSION_OVERRIDE or '0.0.0',
+                'commit': 'unknown',
+                'branch': BRANCH_OVERRIDE or 'unknown',
+                'message': 'unknown',
+                'date': 'unknown',
+            }
+            _write_py(info)
+            return info
 
         # create package version
         version = desc.lstrip('v').rstrip().replace('-', '+', 1).replace('-', '.')
